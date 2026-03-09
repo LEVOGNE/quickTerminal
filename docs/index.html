@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>quickTERMINAL — A 10k-line single-file terminal emulator for macOS</title>
+<meta name="description" content="A blazing-fast terminal emulator for macOS. 10,000+ lines of pure Swift, zero dependencies, native Cocoa rendering at 60 FPS. Free download. Lives in your menu bar with global hotkey.">
+<meta name="keywords" content="terminal emulator, macOS terminal, Swift terminal, command line, developer tools, iTerm2 alternative, Terminal.app alternative, menu bar terminal, open source terminal, macOS developer tools">
+<meta name="author" content="Levent Ersen (LEVOGNE)">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://quickterminal.app/">
+
+<!-- Open Graph / Facebook -->
+<meta property="og:title" content="quickTERMINAL — Fast Terminal Emulator for macOS">
+<meta property="og:description" content="10,000+ lines of pure Swift. One file. Zero dependencies. 4.8 MB. Free for personal use.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://quickterminal.app/">
+<meta property="og:image" content="https://raw.githubusercontent.com/LEVOGNE/quickTerminal/main/quickTERMINAL.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="quickTERMINAL">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="quickTERMINAL — Terminal Emulator for macOS">
+<meta name="twitter:description" content="10,000+ lines. One Swift file. Zero dependencies. Native 60 FPS rendering. Free download.">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/LEVOGNE/quickTerminal/main/quickTERMINAL.png">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/LEVOGNE/quickTerminal/main/icon.png">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/LEVOGNE/quickTerminal/main/icon.png">
+
+<!-- JSON-LD Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "quickTERMINAL",
+  "operatingSystem": "macOS",
+  "applicationCategory": "DeveloperApplication",
+  "description": "A blazing-fast terminal emulator for macOS, written from scratch in a single Swift file. 10,000+ lines, zero dependencies, native Cocoa rendering at 60 FPS.",
+  "url": "https://quickterminal.app/",
+  "downloadUrl": "https://github.com/LEVOGNE/quickTerminal/releases/latest",
+  "softwareVersion": "1.1.0",
+  "fileSize": "4.8 MB",
+  "author": {
+    "@type": "Person",
+    "name": "Levent Ersen",
+    "url": "https://github.com/LEVOGNE"
+  },
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD",
+    "description": "Free for personal use"
+  },
+  "screenshot": "https://raw.githubusercontent.com/LEVOGNE/quickTerminal/main/quickTERMINAL.png",
+  "releaseNotes": "Auto-update system, 40 quickBAR commands, session restore",
+  "programmingLanguage": "Swift"
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep: #05080a;
+  --bg-surface: #0b1117;
+  --bg-card: #111920;
+  --bg-card-hover: #162029;
+  --green-glow: #00ff88;
+  --green-dim: #00cc6a;
+  --green-muted: #00994f;
+  --cyan: #00d4ff;
+  --cyan-dim: #0099bb;
+  --amber: #ffaa00;
+  --text-primary: #e8edf2;
+  --text-secondary: #8899aa;
+  --text-muted: #556677;
+  --border: #1a2633;
+  --border-glow: rgba(0, 255, 136, 0.15);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══ GRID BACKGROUND ═══ */
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.grid-bg::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, transparent 0%, var(--bg-deep) 70%);
+  pointer-events: none;
+}
+
+/* ═══ SCANLINE OVERLAY ═══ */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.3;
+}
+
+/* ═══ NAV ═══ */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(5,8,10,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.3s;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.nav-logo img {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.nav-logo span {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--green-glow);
+  letter-spacing: -0.02em;
+}
+
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.nav-links a {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: color 0.2s;
+}
+
+.nav-links a:hover { color: var(--green-glow); }
+
+.nav-cta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  padding: 0.5rem 1.2rem;
+  background: var(--green-glow);
+  color: var(--bg-deep) !important;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s;
+}
+
+.nav-cta:hover {
+  background: #33ffaa;
+  box-shadow: 0 0 20px rgba(0,255,136,0.3);
+}
+
+/* ═══ HERO ═══ */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8rem 2rem 4rem;
+  text-align: center;
+  z-index: 1;
+}
+
+.hero-glow {
+  position: absolute;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 600px;
+  background: radial-gradient(ellipse, rgba(0,255,136,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  background: rgba(0,255,136,0.08);
+  border: 1px solid rgba(0,255,136,0.2);
+  border-radius: 100px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--green-glow);
+  letter-spacing: 0.05em;
+  margin-bottom: 2rem;
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+.hero-badge .dot {
+  width: 6px;
+  height: 6px;
+  background: var(--green-glow);
+  border-radius: 50%;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--green-glow); }
+  50% { opacity: 0.4; box-shadow: none; }
+}
+
+.hero h1 {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(3rem, 8vw, 6.5rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  margin-bottom: 0.3em;
+  animation: fadeInUp 0.8s ease-out 0.4s both;
+}
+
+.hero h1 .quick {
+  color: var(--text-primary);
+}
+
+.hero h1 .terminal {
+  color: var(--green-glow);
+  text-shadow: 0 0 40px rgba(0,255,136,0.3), 0 0 80px rgba(0,255,136,0.1);
+}
+
+.hero-sub {
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+  color: var(--text-secondary);
+  font-weight: 300;
+  max-width: 600px;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  animation: fadeInUp 0.8s ease-out 0.6s both;
+}
+
+.hero-stats {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 2.5rem;
+  animation: fadeInUp 0.8s ease-out 0.8s both;
+}
+
+.hero-stat {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.hero-stat strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  animation: fadeInUp 0.8s ease-out 1s both;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 2rem;
+  background: var(--green-glow);
+  color: var(--bg-deep);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+  transition: all 0.25s;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: #33ffaa;
+  box-shadow: 0 0 30px rgba(0,255,136,0.35), 0 4px 20px rgba(0,0,0,0.3);
+  transform: translateY(-1px);
+}
+
+.btn-primary svg { width: 18px; height: 18px; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 2rem;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  font-size: 0.9rem;
+  text-decoration: none;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  letter-spacing: 0.02em;
+  transition: all 0.25s;
+}
+
+.btn-secondary:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+  background: rgba(255,255,255,0.03);
+}
+
+.btn-secondary svg { width: 18px; height: 18px; }
+
+/* ═══ TERMINAL PREVIEW ═══ */
+.terminal-preview {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  margin: 3rem auto 0;
+  animation: fadeInUp 0.8s ease-out 1.2s both;
+}
+
+.terminal-window {
+  background: #0d1117;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(0,255,136,0.05),
+    0 20px 60px rgba(0,0,0,0.5),
+    0 0 100px rgba(0,255,136,0.03);
+}
+
+.terminal-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--border);
+}
+
+.terminal-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.terminal-dot.red { background: #ff5f57; }
+.terminal-dot.yellow { background: #febc2e; }
+.terminal-dot.green { background: #28c840; }
+
+.terminal-title {
+  flex: 1;
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.terminal-body {
+  padding: 1.5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  min-height: 260px;
+}
+
+.terminal-line {
+  opacity: 0;
+  animation: typeLine 0.3s ease-out forwards;
+}
+
+.terminal-line .prompt {
+  color: var(--green-glow);
+}
+
+.terminal-line .cmd {
+  color: var(--text-primary);
+}
+
+.terminal-line .output {
+  color: var(--text-secondary);
+}
+
+.terminal-line .highlight {
+  color: var(--cyan);
+}
+
+.terminal-line .amber {
+  color: var(--amber);
+}
+
+.cursor-blink {
+  display: inline-block;
+  width: 8px;
+  height: 1.1em;
+  background: var(--green-glow);
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes typeLine {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══ FEATURES SECTION ═══ */
+section {
+  position: relative;
+  z-index: 1;
+}
+
+.section-pad {
+  padding: 6rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--green-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.section-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 1rem;
+}
+
+.section-desc {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  max-width: 600px;
+  line-height: 1.6;
+  margin-bottom: 3rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.feature-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 2rem;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--green-glow), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.feature-card:hover {
+  border-color: rgba(0,255,136,0.2);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+}
+
+.feature-card:hover::before { opacity: 1; }
+
+.feature-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,255,136,0.08);
+  border-radius: 10px;
+  margin-bottom: 1.2rem;
+  font-size: 1.3rem;
+}
+
+.feature-card h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.feature-card p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ═══ NUMBERS SECTION ═══ */
+.numbers-section {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.numbers-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  text-align: center;
+}
+
+.number-item .value {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 900;
+  color: var(--green-glow);
+  line-height: 1;
+  margin-bottom: 0.3rem;
+  text-shadow: 0 0 30px rgba(0,255,136,0.2);
+}
+
+.number-item .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ═══ ARCHITECTURE SECTION ═══ */
+.arch-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.arch-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  text-align: center;
+  min-width: 200px;
+  transition: all 0.3s;
+}
+
+.arch-box:hover {
+  border-color: rgba(0,255,136,0.3);
+  box-shadow: 0 0 20px rgba(0,255,136,0.05);
+}
+
+.arch-box .arch-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--green-glow);
+  margin-bottom: 0.3rem;
+}
+
+.arch-box .arch-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.arch-arrow {
+  font-size: 1.5rem;
+  color: var(--text-muted);
+}
+
+/* ═══ INSTALL SECTION ═══ */
+.install-section { background: var(--bg-surface); border-top: 1px solid var(--border); }
+
+.install-methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.install-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 2rem;
+}
+
+.install-card h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.install-cmd {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem 1.2rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--green-glow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.install-cmd:hover { border-color: rgba(0,255,136,0.3); }
+
+.install-cmd .copy-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.install-cmd .copy-btn:hover { color: var(--green-glow); }
+
+.install-note {
+  margin-top: 0.8rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ═══ QUICKBAR SECTION ═══ */
+.quickbar-demo {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 2rem;
+  max-width: 600px;
+  margin-top: 2rem;
+}
+
+.quickbar-input {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.quickbar-input .icon {
+  color: var(--green-glow);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+}
+
+.quickbar-input span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.quickbar-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quickbar-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.quickbar-item.active {
+  background: rgba(0,255,136,0.08);
+  color: var(--text-primary);
+}
+
+.quickbar-item .shortcut {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+}
+
+/* ═══ CTA SECTION ═══ */
+.cta-section {
+  text-align: center;
+  position: relative;
+}
+
+.cta-section .cta-glow {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(0,255,136,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.cta-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  margin-bottom: 1rem;
+}
+
+.cta-desc {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ═══ FOOTER ═══ */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 3rem 2rem;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.footer-brand {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.footer-brand a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.footer-brand a:hover { color: var(--green-glow); }
+
+.footer-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.footer-links a {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover { color: var(--text-secondary); }
+
+/* ═══ ANIMATIONS ═══ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 768px) {
+  nav { padding: 0.8rem 1rem; }
+  .nav-links { display: none; }
+  .hero { padding: 7rem 1.5rem 3rem; }
+  .hero-stats { gap: 1rem; }
+  .section-pad { padding: 4rem 1.5rem; }
+  .numbers-grid { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+  .arch-arrow { display: none; }
+  .arch-visual { flex-direction: column; }
+  .footer-inner { flex-direction: column; text-align: center; }
+}
+
+@media (max-width: 480px) {
+  .hero h1 { font-size: 2.5rem; }
+  .hero-actions { flex-direction: column; align-items: stretch; }
+  .btn-primary, .btn-secondary { justify-content: center; }
+  .terminal-body { font-size: 0.72rem; padding: 1rem; }
+  .features-grid { grid-template-columns: 1fr; }
+  .install-methods { grid-template-columns: 1fr; }
+}
+
+/* ═══ COPIED TOOLTIP ═══ */
+.copied-tooltip {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--green-glow);
+  color: var(--bg-deep);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  opacity: 0;
+  transition: all 0.3s;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.copied-tooltip.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="scanlines"></div>
+
+<!-- ═══ NAV ═══ -->
+<header>
+<nav aria-label="Main navigation">
+  <a href="#" class="nav-logo" aria-label="quickTERMINAL Home">
+    <img src="https://raw.githubusercontent.com/LEVOGNE/quickTerminal/main/icon.png" alt="quickTERMINAL icon" width="32" height="32">
+    <span>quickTERMINAL</span>
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#install">Install</a>
+    <a href="https://github.com/LEVOGNE/quickTerminal/wiki" target="_blank">Docs</a>
+    <a href="https://github.com/LEVOGNE/quickTerminal" target="_blank" class="nav-cta">GitHub</a>
+  </div>
+</nav>
+</header>
+
+<main>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="hero-glow"></div>
+
+  <div class="hero-badge">
+    <span class="dot"></span>
+    v1.1.0 — Now with Auto-Updates
+  </div>
+
+  <h1>
+    <span class="quick">quick</span><span class="terminal">TERMINAL</span>
+  </h1>
+
+  <p class="hero-sub">
+    A blazing-fast terminal emulator for macOS.<br>
+    One file. Zero dependencies. Pure Swift.
+  </p>
+
+  <div class="hero-stats">
+    <span class="hero-stat"><strong>10,000+</strong> lines</span>
+    <span class="hero-stat"><strong>1</strong> file</span>
+    <span class="hero-stat"><strong>0</strong> dependencies</span>
+    <span class="hero-stat"><strong>4.8 MB</strong> app</span>
+    <span class="hero-stat"><strong>60</strong> FPS</span>
+  </div>
+
+  <div class="hero-actions">
+    <a href="https://github.com/LEVOGNE/quickTerminal/releases/latest" class="btn-primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download for macOS
+    </a>
+    <a href="https://github.com/LEVOGNE/quickTerminal" class="btn-secondary" target="_blank">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+      View Source
+    </a>
+  </div>
+
+  <!-- Terminal Preview -->
+  <div class="terminal-preview">
+    <div class="terminal-window">
+      <div class="terminal-titlebar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">quickTERMINAL — zsh</span>
+      </div>
+      <div class="terminal-body" id="terminalBody" role="img" aria-label="Terminal demo showing quickTERMINAL running neofetch">
+        <noscript>
+          <div class="terminal-line"><span class="prompt">~ </span><span class="cmd">neofetch --minimal</span></div>
+          <div class="terminal-line"><span class="output">  macOS 15.2 Sequoia</span></div>
+          <div class="terminal-line"><span class="output">  Terminal: <span class="highlight">quickTERMINAL v1.1.0</span></span></div>
+          <div class="terminal-line"><span class="output">  Shell: zsh 5.9</span></div>
+          <div class="terminal-line"><span class="prompt">~ </span><span class="cmd">quickterminal --info</span></div>
+          <div class="terminal-line"><span class="output">  <span class="amber">10,247</span> lines | <span class="amber">1</span> file | <span class="amber">0</span> deps | <span class="amber">4.8 MB</span></span></div>
+          <div class="terminal-line"><span class="output">  Parser: 13-state FSM | Render: 60 FPS CGContext</span></div>
+          <div class="terminal-line"><span class="output">  Colors: 24-bit TrueColor | Graphics: Sixel</span></div>
+        </noscript>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FEATURES ═══ -->
+<section id="features">
+  <div class="section-pad reveal">
+    <div class="section-label">// Features</div>
+    <h2 class="section-title">Everything you need. Nothing you don't.</h2>
+    <p class="section-desc">Built from the ground up for speed, simplicity, and power. No frameworks, no bloat — just a terminal that works.</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">&#9654;</div>
+        <h3>Menu Bar Native</h3>
+        <p>Lives in your menu bar, not the dock. Toggle with <strong>Ctrl+&lt;</strong> — instant access from anywhere, always one keystroke away.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9881;</div>
+        <h3>Hand-Rolled VT Parser</h3>
+        <p>13-state finite automaton processes every byte. VT100, VT220, xterm — built from scratch. No libvte, no SwiftTerm.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9889;</div>
+        <h3>60 FPS Rendering</h3>
+        <p>Direct CGContext drawing with dirty-flag optimization. Sub-pixel text rendering. Synchronized output for flicker-free updates.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#127912;</div>
+        <h3>24-bit TrueColor</h3>
+        <p>Full RGB color support with 256-color palette. Sixel inline graphics. 7 built-in prompt themes to choose from.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128269;</div>
+        <h3>quickBAR Command Palette</h3>
+        <p>40 commands at your fingertips. Like Spotlight for your terminal — search, navigate, configure, all without touching the mouse.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128193;</div>
+        <h3>Tabs &amp; Split Panes</h3>
+        <p>Multi-tab interface with horizontal and vertical splits. Session restore preserves your entire workspace across restarts.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128065;</div>
+        <h3>Mouse Tracking</h3>
+        <p>Full mouse protocol support — normal, button, any-event tracking with SGR encoding. Works with vim, tmux, htop.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9749;</div>
+        <h3>Kitty Keyboard Protocol</h3>
+        <p>Progressive enhancement keyboard protocol for modern terminal applications. Disambiguated key events with modifier encoding.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128260;</div>
+        <h3>Auto-Updates</h3>
+        <p>Checks GitHub Releases every 72 hours. One-click update with progress tracking. Automatic session restore after restart.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ NUMBERS ═══ -->
+<section class="numbers-section">
+  <div class="section-pad">
+    <div class="numbers-grid reveal">
+      <div class="number-item">
+        <div class="value">10k+</div>
+        <div class="label">Lines of Code</div>
+      </div>
+      <div class="number-item">
+        <div class="value">1</div>
+        <div class="label">Swift File</div>
+      </div>
+      <div class="number-item">
+        <div class="value">4.8</div>
+        <div class="label">MB App Size</div>
+      </div>
+      <div class="number-item">
+        <div class="value">40</div>
+        <div class="label">QuickBAR Commands</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ ARCHITECTURE ═══ -->
+<section id="architecture">
+  <div class="section-pad reveal">
+    <div class="section-label">// Architecture</div>
+    <h2 class="section-title">One file. Three layers.</h2>
+    <p class="section-desc">Clean separation of concerns inside a single file. The parser knows nothing about pixels. The renderer knows nothing about escape codes.</p>
+
+    <div class="arch-visual">
+      <div class="arch-box">
+        <div class="arch-name">Terminal</div>
+        <div class="arch-desc">VT Parser + Grid Buffer</div>
+      </div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-box">
+        <div class="arch-name">TerminalView</div>
+        <div class="arch-desc">NSView + PTY + Rendering</div>
+      </div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-box">
+        <div class="arch-name">AppDelegate</div>
+        <div class="arch-desc">Window + Tabs + Splits</div>
+      </div>
+    </div>
+
+    <!-- quickBAR Demo -->
+    <div class="quickbar-demo" style="margin-top: 3rem;">
+      <div class="section-label" style="margin-bottom: 1rem;">quickBAR Preview</div>
+      <div class="quickbar-input">
+        <span class="icon">&gt;</span>
+        <span>Type a command...</span>
+      </div>
+      <div class="quickbar-results">
+        <div class="quickbar-item active">
+          <span>New Tab</span>
+          <span class="shortcut">&#8984;T</span>
+        </div>
+        <div class="quickbar-item">
+          <span>Split Horizontal</span>
+          <span class="shortcut">&#8984;D</span>
+        </div>
+        <div class="quickbar-item">
+          <span>Toggle Theme</span>
+          <span class="shortcut">&#8984;&#8679;T</span>
+        </div>
+        <div class="quickbar-item">
+          <span>Check for Updates</span>
+          <span class="shortcut"></span>
+        </div>
+        <div class="quickbar-item">
+          <span>Settings</span>
+          <span class="shortcut">&#8984;,</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ INSTALL ═══ -->
+<section id="install" class="install-section">
+  <div class="section-pad reveal">
+    <div class="section-label">// Install</div>
+    <h2 class="section-title">Up and running in seconds.</h2>
+    <p class="section-desc">Choose your preferred installation method. No admin rights required.</p>
+
+    <div class="install-methods">
+      <div class="install-card">
+        <h3>Homebrew</h3>
+        <div class="install-cmd" onclick="copyCmd(this, 'brew install LEVOGNE/tap/quickterminal')">
+          <span>brew install LEVOGNE/tap/quickterminal</span>
+          <button class="copy-btn" aria-label="Copy">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+        <p class="install-note">Requires Homebrew. Auto-updates included.</p>
+      </div>
+
+      <div class="install-card">
+        <h3>Direct Download</h3>
+        <div class="install-cmd" onclick="window.open('https://github.com/LEVOGNE/quickTerminal/releases/latest', '_blank')">
+          <span>Download quickTERMINAL_v1.1.0.zip</span>
+          <button class="copy-btn" aria-label="Download">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+        </div>
+        <p class="install-note">Unzip, drag to /Applications, done.</p>
+      </div>
+
+      <div class="install-card">
+        <h3>Build from Source</h3>
+        <div class="install-cmd" onclick="copyCmd(this, 'git clone https://github.com/LEVOGNE/quickTerminal && cd quickTerminal && bash build_app.sh')">
+          <span>git clone &amp;&amp; bash build_app.sh</span>
+          <button class="copy-btn" aria-label="Copy">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+        <p class="install-note">Single swiftc call. No Xcode project needed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CTA ═══ -->
+<section class="cta-section">
+  <div class="section-pad reveal">
+    <div class="cta-glow"></div>
+    <div class="section-label">// Get Started</div>
+    <h2 class="cta-title">Your terminal, <span style="color: var(--green-glow);">reimagined.</span></h2>
+    <p class="cta-desc">Free for personal use. Open source on GitHub. Star the repo if you like it.</p>
+    <div class="hero-actions">
+      <a href="https://github.com/LEVOGNE/quickTerminal/releases/latest" class="btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download v1.1.0
+      </a>
+      <a href="https://github.com/LEVOGNE/quickTerminal" class="btn-secondary" target="_blank">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Star on GitHub
+      </a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      &copy; 2026 <a href="https://github.com/LEVOGNE">LEVOGNE</a> &mdash; Levent Ersen
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/LEVOGNE/quickTerminal">GitHub</a>
+      <a href="https://github.com/LEVOGNE/quickTerminal/wiki">Wiki</a>
+      <a href="https://github.com/LEVOGNE/quickTerminal/releases">Releases</a>
+      <a href="https://github.com/LEVOGNE/quickTerminal/blob/main/LICENSE">License</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══ COPIED TOOLTIP ═══ -->
+<div class="copied-tooltip" id="copiedTooltip">Copied!</div>
+
+<script>
+// ═══ TERMINAL TYPING ANIMATION ═══
+const termLines = [
+  { prompt: '~ ', cmd: 'neofetch --minimal', delay: 0 },
+  { output: '  macOS 15.2 Sequoia', delay: 400 },
+  { output: '  Terminal: <span class="highlight">quickTERMINAL v1.1.0</span>', delay: 600 },
+  { output: '  Shell: zsh 5.9', delay: 800 },
+  { output: '  Resolution: 2560x1600', delay: 1000 },
+  { output: '', delay: 1200 },
+  { prompt: '~ ', cmd: 'quickterminal --info', delay: 1400 },
+  { output: '  <span class="amber">10,247</span> lines  |  <span class="amber">1</span> file  |  <span class="amber">0</span> deps  |  <span class="amber">4.8 MB</span>', delay: 1800 },
+  { output: '  Parser: 13-state FSM  |  Render: 60 FPS CGContext', delay: 2000 },
+  { output: '  Colors: 24-bit TrueColor  |  Graphics: Sixel', delay: 2200 },
+  { output: '', delay: 2400 },
+  { prompt: '~ ', cmd: '', delay: 2600, cursor: true },
+];
+
+const termBody = document.getElementById('terminalBody');
+
+function renderTerminal() {
+  termLines.forEach((line, i) => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = 'terminal-line';
+      div.style.animationDelay = '0s';
+
+      if (line.prompt !== undefined) {
+        let html = `<span class="prompt">${line.prompt}</span>`;
+        html += `<span class="cmd">${line.cmd}</span>`;
+        if (line.cursor) html += '<span class="cursor-blink"></span>';
+        div.innerHTML = html;
+      } else {
+        div.innerHTML = `<span class="output">${line.output}</span>`;
+      }
+
+      termBody.appendChild(div);
+    }, line.delay);
+  });
+}
+
+// Start terminal animation when hero is visible
+const heroObserver = new IntersectionObserver((entries) => {
+  if (entries[0].isIntersecting) {
+    setTimeout(renderTerminal, 500);
+    heroObserver.disconnect();
+  }
+}, { threshold: 0.3 });
+
+heroObserver.observe(document.querySelector('.hero'));
+
+// ═══ SCROLL REVEAL ═══
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+// ═══ COPY COMMAND ═══
+function copyCmd(el, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const tooltip = document.getElementById('copiedTooltip');
+    tooltip.classList.add('show');
+    setTimeout(() => tooltip.classList.remove('show'), 1500);
+  });
+}
+
+// ═══ NAV SCROLL EFFECT ═══
+let lastScroll = 0;
+window.addEventListener('scroll', () => {
+  const nav = document.querySelector('nav');
+  const scroll = window.scrollY;
+  if (scroll > 100) {
+    nav.style.borderBottomColor = 'rgba(0,255,136,0.1)';
+  } else {
+    nav.style.borderBottomColor = 'var(--border)';
+  }
+  lastScroll = scroll;
+}, { passive: true });
+</script>
+
+</body>
+</html>
