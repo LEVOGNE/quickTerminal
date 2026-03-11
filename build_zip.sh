@@ -4,7 +4,7 @@
 set -e
 cd "$(dirname "$0")"
 
-VERSION="1.2.0"
+VERSION="1.2.1"
 ZIP_NAME="quickTERMINAL_v${VERSION}.zip"
 
 echo "=== Building ${ZIP_NAME} (v${VERSION}) ==="

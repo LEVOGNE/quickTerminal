@@ -9,7 +9,7 @@ import Security
 
 // MARK: - Version
 
-let kAppVersion = "1.2.0"
+let kAppVersion = "1.2.1"
 
 func isNewerVersion(remote: String, local: String) -> Bool {
     let strip: (String) -> String = { $0.hasPrefix("v") ? String($0.dropFirst()) : $0 }
@@ -6913,6 +6913,19 @@ class GitHubClient {
     }
 }
 
+// MARK: - Clickable Toast View
+
+class ClickableToastView: NSView {
+    var onClick: (() -> Void)?
+    override func mouseDown(with event: NSEvent) {
+        onClick?()
+        removeFromSuperview()
+    }
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+}
+
 // MARK: - AI Usage Manager
 
 struct AITokenStore {
@@ -12393,7 +12406,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func showGenericToast(badge badgeStr: String, text queryStr: String,
                           badgeColor: NSColor, dismissAfter: TimeInterval = 6.0,
-                          identifier: String = "updateToast") {
+                          identifier: String = "updateToast",
+                          onClick: (() -> Void)? = nil) {
         guard let contentView = window.contentView else { return }
         contentView.subviews.filter { $0.identifier == NSUserInterfaceItemIdentifier(identifier) }.forEach { $0.removeFromSuperview() }
 
@@ -12410,10 +12424,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let badgeW = ceil(badgeTextSz.width) + badgePadX * 2
         let totalW = padOuter + badgeW + padInner + ceil(queryTextSz.width) + padOuter
 
-        let toast = NSView(frame: NSRect(
-            x: round((contentView.bounds.width - totalW) / 2),
-            y: contentView.bounds.height - toastH - 48,
-            width: totalW, height: toastH))
+        let toast: NSView
+        if let action = onClick {
+            let clickable = ClickableToastView(frame: NSRect(
+                x: round((contentView.bounds.width - totalW) / 2),
+                y: contentView.bounds.height - toastH - 48,
+                width: totalW, height: toastH))
+            clickable.onClick = action
+            toast = clickable
+        } else {
+            toast = NSView(frame: NSRect(
+                x: round((contentView.bounds.width - totalW) / 2),
+                y: contentView.bounds.height - toastH - 48,
+                width: totalW, height: toastH))
+        }
         toast.identifier = NSUserInterfaceItemIdentifier(identifier)
         toast.wantsLayer = true
         toast.layer?.backgroundColor = NSColor(calibratedWhite: 0.07, alpha: 0.93).cgColor
@@ -12472,9 +12496,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func showUpdateToast(version: String) {
         let v = version.hasPrefix("v") ? version : "v\(version)"
-        showGenericToast(badge: "UPDATE", text: "\(v) available",
+        showGenericToast(badge: "UPDATE", text: "\(v) available — click to install",
                          badgeColor: NSColor(calibratedRed: 0.18, green: 0.55, blue: 0.34, alpha: 1.0),
-                         dismissAfter: 8.0)
+                         dismissAfter: 12.0, onClick: { [weak self] in
+                             guard let self = self, let release = self.pendingRelease else { return }
+                             self.startUpdateDownload(release: release)
+                         })
     }
 
     func showDownloadProgressToast(percent: Double) {
@@ -12653,6 +12680,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func startUpdateDownload(release: GitHubRelease) {
+        guard Bundle.main.bundlePath.hasSuffix(".app") else {
+            showGenericToast(badge: "UPDATE", text: "Only works with .app bundle",
+                             badgeColor: NSColor(calibratedRed: 0.6, green: 0.2, blue: 0.18, alpha: 1.0))
+            return
+        }
         showDownloadProgressToast(percent: 0)
         updateChecker.downloadAndInstall(release: release, onProgress: { [weak self] pct in
             self?.showDownloadProgressToast(percent: pct)

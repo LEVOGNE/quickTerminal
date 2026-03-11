@@ -22,7 +22,7 @@
 
 <br>
 
-[**Download quickTerminal.app (v1.2.0)**](https://github.com/LEVOGNE/quickTerminal/releases/latest) · [**Website**](https://levogne.github.io/quickTerminal/)
+[**Download quickTerminal.app (v1.2.1)**](https://github.com/LEVOGNE/quickTerminal/releases/latest) · [**Website**](https://levogne.github.io/quickTerminal/)
 
 ---
 
@@ -691,7 +691,7 @@ This project follows [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
 
 <img src="icon.png" width="64" alt="quickTERMINAL">
 
-### quickTERMINAL v1.2.0
+### quickTERMINAL v1.2.1
 
 *10000+ lines. One file. Zero dependencies. Git panel. Claude Code usage. Auto-updater.*
 
