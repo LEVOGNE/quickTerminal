@@ -42,7 +42,7 @@
   "description": "A blazing-fast terminal emulator for macOS, written from scratch in a single Swift file. 10,000+ lines, zero dependencies, native Cocoa rendering at 60 FPS.",
   "url": "https://quickterminal.app/",
   "downloadUrl": "https://github.com/LEVOGNE/quickTerminal/releases/latest",
-  "softwareVersion": "1.1.0",
+  "softwareVersion": "1.2.0",
   "fileSize": "4.8 MB",
   "author": {
     "@type": "Person",
@@ -56,7 +56,7 @@
     "description": "Free for personal use"
   },
   "screenshot": "https://raw.githubusercontent.com/LEVOGNE/quickTerminal/main/quickTERMINAL.png",
-  "releaseNotes": "Auto-update system, 40 quickBAR commands, session restore",
+  "releaseNotes": "Git panel, Claude Code usage tracking, drag & drop, custom tab names, auto-updates",
   "programmingLanguage": "Swift"
 }
 </script>
@@ -938,7 +938,7 @@ footer {
 
   <div class="hero-badge">
     <span class="dot"></span>
-    v1.1.0 — Now with Auto-Updates
+    v1.2.0 — Git Panel, Claude Code Integration & More
   </div>
 
   <h1>
@@ -982,7 +982,7 @@ footer {
         <noscript>
           <div class="terminal-line"><span class="prompt">~ </span><span class="cmd">neofetch --minimal</span></div>
           <div class="terminal-line"><span class="output">  macOS 15.2 Sequoia</span></div>
-          <div class="terminal-line"><span class="output">  Terminal: <span class="highlight">quickTERMINAL v1.1.0</span></span></div>
+          <div class="terminal-line"><span class="output">  Terminal: <span class="highlight">quickTERMINAL v1.2.0</span></span></div>
           <div class="terminal-line"><span class="output">  Shell: zsh 5.9</span></div>
           <div class="terminal-line"><span class="prompt">~ </span><span class="cmd">quickterminal --info</span></div>
           <div class="terminal-line"><span class="output">  <span class="amber">10,247</span> lines | <span class="amber">1</span> file | <span class="amber">0</span> deps | <span class="amber">4.8 MB</span></span></div>
@@ -1046,6 +1046,26 @@ footer {
         <div class="feature-icon">&#128260;</div>
         <h3>Auto-Updates</h3>
         <p>Checks GitHub Releases every 72 hours. One-click update with progress tracking. Automatic session restore after restart.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128025;</div>
+        <h3>Git Panel</h3>
+        <p>Built-in Git integration — branch, status, diff, commit history. Toggle with the GIT button. GitHub API support for CI status.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128202;</div>
+        <h3>Claude Code Usage</h3>
+        <p>Live Claude Code subscription usage in the footer bar. Session &amp; weekly limits with color-coded badge. Auto-connected, zero setup.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128206;</div>
+        <h3>Drag &amp; Drop</h3>
+        <p>Drag files and images from Finder into the terminal. Paths are automatically shell-escaped and inserted at the cursor position.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9999;</div>
+        <h3>Custom Tab Names</h3>
+        <p>Double-click any tab to rename it. Custom names persist across sessions and restarts. Keep your workspace organized.</p>
       </div>
     </div>
   </div>
@@ -1154,7 +1174,7 @@ footer {
       <div class="install-card">
         <h3>Direct Download</h3>
         <div class="install-cmd" onclick="window.open('https://github.com/LEVOGNE/quickTerminal/releases/latest', '_blank')">
-          <span>Download quickTERMINAL_v1.1.0.zip</span>
+          <span>Download quickTERMINAL_v1.2.0.zip</span>
           <button class="copy-btn" aria-label="Download">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </button>
@@ -1186,7 +1206,7 @@ footer {
     <div class="hero-actions">
       <a href="https://github.com/LEVOGNE/quickTerminal/releases/latest" class="btn-primary">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download v1.1.0
+        Download v1.2.0
       </a>
       <a href="https://github.com/LEVOGNE/quickTerminal" class="btn-secondary" target="_blank">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -1221,7 +1241,7 @@ footer {
 const termLines = [
   { prompt: '~ ', cmd: 'neofetch --minimal', delay: 0 },
   { output: '  macOS 15.2 Sequoia', delay: 400 },
-  { output: '  Terminal: <span class="highlight">quickTERMINAL v1.1.0</span>', delay: 600 },
+  { output: '  Terminal: <span class="highlight">quickTERMINAL v1.2.0</span>', delay: 600 },
   { output: '  Shell: zsh 5.9', delay: 800 },
   { output: '  Resolution: 2560x1600', delay: 1000 },
   { output: '', delay: 1200 },

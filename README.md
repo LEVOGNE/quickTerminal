@@ -10,7 +10,7 @@
 
 **A blazing-fast, single-file terminal emulator for macOS.**
 
-*Zero dependencies. Pure Swift. Lives in your menu bar. Built-in auto-updater. 4.8 MB app bundle.*
+*Zero dependencies. Pure Swift. Lives in your menu bar. Built-in Git panel, Claude Code integration & auto-updater. 4.8 MB app bundle.*
 
 <br>
 
@@ -22,7 +22,7 @@
 
 <br>
 
-[**Download quickTerminal.app (v1.1.0)**](https://github.com/LEVOGNE/quickTerminal/releases/latest)
+[**Download quickTerminal.app (v1.2.0)**](https://github.com/LEVOGNE/quickTerminal/releases/latest)
 
 ---
 
@@ -139,6 +139,8 @@
 | :wheelchair: | **Accessibility** | VoiceOver support — screen reader access to terminal content |
 | :bar_chart: | **Diagnostics** | Built-in performance monitor and parser state viewer |
 | :arrows_counterclockwise: | **Auto-Update** | Built-in update system — checks GitHub Releases every 72h, downloads + installs + restarts seamlessly |
+| :octocat: | **Git Integration** | Built-in Git panel — branch, status, diff, commit history with GitHub API support |
+| :bar_chart: | **Claude Code Usage** | Live Claude Code subscription usage in footer — session %, weekly limits, auto-connected |
 
 <br>
 
@@ -292,6 +294,9 @@ IND  NEL  HTS  RI  DCS  CSI  OSC  ST (8-bit C1)
 | :low_brightness: | **Auto-Dim** | Dims window when unfocused (off by default) |
 | :electric_plug: | **Auto-Start** | Launch at login via LaunchAgent |
 | :open_file_folder: | **Drag & Drop** | Drag files/images into terminal — pastes shell-escaped path |
+| :label: | **Custom Tab Names** | Double-click any tab to rename — custom names persist across sessions |
+| :octocat: | **Git Panel** | Built-in Git panel with branch, status, diff, and commit history |
+| :bar_chart: | **Claude Code Usage** | Live usage badge in footer — auto-connects to Claude Code, shows session & weekly limits |
 | :shield: | **Crash Reporting** | Automatic crash logs to `~/.quickterminal/crash.log` |
 | :arrows_counterclockwise: | **Auto-Update** | Checks GitHub Releases every 72h, one-click install with progress bar, session-preserving restart |
 
@@ -524,6 +529,9 @@ Each shell gets:
 | Copy on Select | On/Off | On |
 | Auto-Start at Login | On/Off | Off |
 | Auto-Check Updates | On/Off | On |
+| **Claude Code** | | |
+| Show Usage Badge | On/Off | On |
+| Refresh Interval | 30s / 1m / 5m | 1m |
 
 <br>
 
@@ -563,6 +571,16 @@ quickTerminal.swift (single file, ~10000 lines)
 │   ├── GitHub API ··········· Check releases every 72h
 │   ├── Download ············· Progress-tracked ZIP download
 │   └── Self-replace ········· Unzip, swap .app, rollback on failure, restart
+│
+├── GitPanelView ·············· Built-in Git integration
+│   ├── Branch + Status ······ Current branch, changed/staged files
+│   ├── Diff Viewer ·········· Inline diff display
+│   └── GitHub Client ········ API integration for CI status
+│
+├── AIUsageManager ············ Claude Code usage tracking
+│   ├── Token Auto-Discovery · Reads Claude Code credentials via security CLI
+│   ├── Usage Polling ········ Fetches session/weekly limits at configurable interval
+│   └── AIUsageBadge ········· Color-coded footer badge with detail popover
 │
 ├── AppDelegate ··············· Window, tabs, splits, settings
 │   ├── BorderlessWindow ····· Custom shape + popover arrow
@@ -673,9 +691,9 @@ This project follows [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
 
 <img src="icon.png" width="64" alt="quickTERMINAL">
 
-### quickTERMINAL v1.1.0
+### quickTERMINAL v1.2.0
 
-*10000+ lines. One file. Zero dependencies. Built-in auto-updater.*
+*10000+ lines. One file. Zero dependencies. Git panel. Claude Code usage. Auto-updater.*
 
 *Built with obsessive attention to every escape sequence, every pixel, every frame.*
 

@@ -17,7 +17,7 @@
 
 <br>
 
-![Version](https://img.shields.io/badge/Version-1.0.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.2.0-blue?style=for-the-badge)
 ![Commands](https://img.shields.io/badge/Commands-40-brightgreen?style=for-the-badge)
 ![Shortcuts](https://img.shields.io/badge/Shortcuts-25%2B-orange?style=for-the-badge)
 ![App](https://img.shields.io/badge/App-4.8_MB-purple?style=for-the-badge)
@@ -97,6 +97,27 @@
 | :art: | **Theme (default)** | Choice | default, cyberpunk, minimal, powerline, retro, lambda, starship |
 | :keyboard: | **Font (Fira Code)** | Choice | Fira Code, JetBrains Mono, Monocraft, Iosevka Thin |
 | :rocket: | **Shell (zsh)** | Choice | zsh, bash, sh |
+
+### :octocat: Git Panel
+
+| | Command | Description |
+|:---:|---|---|
+| :octocat: | **GIT** | Toggle Git panel — shows branch, status, diff, recent commits |
+
+> [!NOTE]
+> The Git panel auto-detects the current repository. Toggle position between right side and bottom.
+> Displays: current branch, changed files, staged changes, commit history.
+
+### :bar_chart: Claude Code Usage
+
+| | Command | Description |
+|:---:|---|---|
+| :bar_chart: | **AI Usage Badge** | Shows Claude Code session utilization in footer bar |
+
+> [!NOTE]
+> Auto-connects to Claude Code via local credentials. Shows session (5h) and weekly usage.
+> Click the badge for detailed breakdown with progress bars and reset times.
+> Toggle in Settings under "Claude Code". No manual token entry needed.
 
 ### :gear: Behavior Toggles
 
@@ -308,7 +329,7 @@
 
 ![Built with Swift](https://img.shields.io/badge/Built_with-Swift-F05138?style=flat-square&logo=swift&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-macOS-000000?style=flat-square&logo=apple&logoColor=white)
-![quickTERMINAL](https://img.shields.io/badge/quickTERMINAL-v1.1.0-blue?style=flat-square)
+![quickTERMINAL](https://img.shields.io/badge/quickTERMINAL-v1.2.0-blue?style=flat-square)
 ![Lines](https://img.shields.io/badge/10000%2B_Lines-One_File-blue?style=flat-square)
 ![App](https://img.shields.io/badge/App-4.8_MB-brightgreen?style=flat-square)
 
