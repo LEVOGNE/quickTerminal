@@ -6587,7 +6587,7 @@ class SettingsOverlay: NSView {
         "autoStartEnabled": false,
         "autoCheckUpdates": true,
         "showAIUsage": true,
-        "aiUsageRefreshIndex": 1,
+        "aiUsageRefreshIndex": 2,
     ]
 
     private func isAtDefaults() -> Bool {
@@ -7049,22 +7049,22 @@ class AIUsageManager {
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
 
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            if let error = error {
-                self?.debugLog("Network error: \(error.localizedDescription)")
-            }
-            if let http = response as? HTTPURLResponse {
-                self?.debugLog("HTTP \(http.statusCode)")
-            }
+            guard let self = self else { return }
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+            if let error = error { self.debugLog("Network error: \(error.localizedDescription)") }
+            self.debugLog("HTTP \(statusCode)")
             if let data = data, let body = String(data: data, encoding: .utf8) {
-                self?.debugLog("Response: \(String(body.prefix(500)))")
+                self.debugLog("Response: \(String(body.prefix(500)))")
             }
-            guard let self = self, let data = data,
-                  let http = response as? HTTPURLResponse, http.statusCode == 200,
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-            else {
-                DispatchQueue.main.async { self?.onUpdate?(nil) }
+            // Auth errors → clear badge (token revoked/expired)
+            if statusCode == 401 || statusCode == 403 {
+                DispatchQueue.main.async { self.onUpdate?(nil) }
                 return
             }
+            // Transient errors (429, network, 5xx) → keep last data, badge stays green
+            guard let data = data, statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            else { return }
             let result = self.parseUsageJSON(json)
             DispatchQueue.main.async {
                 self.latestData = result
@@ -8741,6 +8741,117 @@ private extension NSButton {
         anim.duration = 0.35
         anim.values = [-8, 8, -6, 6, -4, 4, 0]
         layer?.add(anim, forKey: "shake")
+    }
+}
+
+// MARK: - Chrome CDP Client
+
+class ChromeCDPClient {
+    static var debugPort: Int {
+        UserDefaults.standard.integer(forKey: "htmlPickerBrowser") == 1 ? 9221 : 9222
+    }
+    private var webSocketTask: URLSessionWebSocketTask?
+    private var wsSession: URLSession?
+    private var messageId = 0
+    private var pendingCallbacks: [Int: ([String: Any]?) -> Void] = [:]
+
+    /// Prüft ob Chrome mit --remote-debugging-port läuft (2s Timeout)
+    func isAvailable(completion: @escaping (Bool) -> Void) {
+        guard let url = URL(string: "http://localhost:\(Self.debugPort)/json") else {
+            completion(false); return
+        }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 2.0
+        URLSession.shared.dataTask(with: req) { _, response, _ in
+            DispatchQueue.main.async {
+                completion((response as? HTTPURLResponse)?.statusCode == 200)
+            }
+        }.resume()
+    }
+
+    /// Startet Chrome neu mit --remote-debugging-port
+    func launchChrome(completion: @escaping () -> Void) {
+        let candidates = [
+            "/Applications/Google Chrome.app",
+            "/Applications/Chromium.app",
+            "/Applications/Google Chrome Canary.app"
+        ]
+        guard let path = candidates.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
+            DispatchQueue.main.async { completion() }
+            return
+        }
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        proc.arguments = ["-a", path, "--args", "--remote-debugging-port=\(Self.debugPort)"]
+        try? proc.run()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { completion() }
+    }
+
+    /// Gibt die WebSocket-URL des ersten aktiven Page-Tabs zurück
+    func getActiveTabWS(completion: @escaping (String?) -> Void) {
+        guard let url = URL(string: "http://localhost:\(Self.debugPort)/json/list") else {
+            completion(nil); return
+        }
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            guard let data = data,
+                  let tabs = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+                  let tab = tabs.first(where: { ($0["type"] as? String) == "page" }),
+                  let wsURL = tab["webSocketDebuggerUrl"] as? String else {
+                DispatchQueue.main.async { completion(nil) }
+                return
+            }
+            DispatchQueue.main.async { completion(wsURL) }
+        }.resume()
+    }
+
+    /// Verbindet via WebSocket mit einem Chrome-Tab
+    func connect(wsURL: String, completion: @escaping (Bool) -> Void) {
+        disconnect()
+        guard let url = URL(string: wsURL) else { completion(false); return }
+        wsSession = URLSession(configuration: .default)
+        webSocketTask = wsSession?.webSocketTask(with: url)
+        webSocketTask?.resume()
+        receiveLoop()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { completion(true) }
+    }
+
+    private func receiveLoop() {
+        webSocketTask?.receive { [weak self] result in
+            guard let self = self else { return }
+            if case .success(let msg) = result, case .string(let text) = msg {
+                if let data = text.data(using: .utf8),
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let id = json["id"] as? Int,
+                   let cb = self.pendingCallbacks[id] {
+                    self.pendingCallbacks.removeValue(forKey: id)
+                    DispatchQueue.main.async { cb(json["result"] as? [String: Any]) }
+                }
+            }
+            self.receiveLoop()
+        }
+    }
+
+    /// Führt JavaScript im aktiven Tab aus (Runtime.evaluate)
+    func evaluate(_ expr: String, completion: @escaping ([String: Any]?) -> Void) {
+        messageId += 1
+        let id = messageId
+        pendingCallbacks[id] = completion
+        let msg: [String: Any] = [
+            "id": id,
+            "method": "Runtime.evaluate",
+            "params": ["expression": expr, "returnByValue": true]
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: msg),
+              let text = String(data: data, encoding: .utf8) else { return }
+        webSocketTask?.send(.string(text)) { _ in }
+    }
+
+    func disconnect() {
+        webSocketTask?.cancel(with: .goingAway, reason: nil)
+        webSocketTask = nil
+        wsSession = nil
+        pendingCallbacks.removeAll()
+        messageId = 0
     }
 }
 
