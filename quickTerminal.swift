@@ -215,6 +215,7 @@ class Terminal {
     var savedUseG1 = false
     var savedOriginMode = false
     var savedAutoWrap = true
+    var savedPendingWrap = false
     var scrollTop = 0
     var scrollBottom: Int
     var scrollback: [[Cell]] = []
@@ -226,6 +227,7 @@ class Terminal {
     var appCursorMode = false
     var appKeypadMode = false
     var autoWrapMode = true
+    var pendingWrap = false   // deferred wrap: set when char fills last column, wrap on next printable
     var originMode = false
     var reverseVideoMode = false
     var leftRightMarginMode = false
@@ -339,6 +341,7 @@ class Terminal {
     }
 
     func advanceToNextTab() {
+        pendingWrap = false
         for x in (cursorX + 1)..<cols {
             if tabStops.contains(x) { cursorX = x; return }
         }
@@ -409,10 +412,10 @@ class Terminal {
                 // ESC always starts a new escape sequence, aborting current
                 pstate = .esc; return
             case 0x07: return // BEL — ignore in non-OSC states
-            case 0x08: cursorX = max(0, cursorX - 1); return
+            case 0x08: cursorX = max(0, cursorX - 1); pendingWrap = false; return
             case 0x09: advanceToNextTab(); return
             case 0x0A, 0x0B, 0x0C: lf(); return
-            case 0x0D: cursorX = 0; return
+            case 0x0D: cursorX = 0; pendingWrap = false; return
             case 0x0E: useG1 = true; return   // SO — shift out (activate G1)
             case 0x0F: useG1 = false; return  // SI — shift in (activate G0)
             default: return // other C0 — ignore
@@ -459,12 +462,14 @@ class Terminal {
                 savedAttrs = attrs; savedG0IsGraphics = charsetG0IsGraphics
                 savedG1IsGraphics = charsetG1IsGraphics; savedUseG1 = useG1
                 savedOriginMode = originMode; savedAutoWrap = autoWrapMode
+                savedPendingWrap = pendingWrap
                 pstate = .ground
             case 0x38: // ESC 8 — DECRC (restore cursor + attrs)
                 cursorX = savedX; cursorY = savedY
                 attrs = savedAttrs; charsetG0IsGraphics = savedG0IsGraphics
                 charsetG1IsGraphics = savedG1IsGraphics; useG1 = savedUseG1
                 originMode = savedOriginMode; autoWrapMode = savedAutoWrap
+                pendingWrap = savedPendingWrap
                 pstate = .ground
             case 0x44: lf(); pstate = .ground                                     // ESC D — index (IND)
             case 0x4D: rlf(); pstate = .ground                                    // ESC M — reverse index (RI)
@@ -672,12 +677,12 @@ class Terminal {
             return
         }
         let isWide = (w == 2)
-        // Auto-wrap: if cursor is past the right edge, wrap to next line
-        if autoWrapMode && cursorX >= eCols { cursorX = 0; lf() }
+        // Deferred wrap: if pending wrap flag is set, wrap now before placing next printable char
+        if pendingWrap && autoWrapMode { cursorX = 0; pendingWrap = false; lf() }
         // Wide char at last column: wrap early (can't fit 2 cells)
         if isWide && autoWrapMode && cursorX == eCols - 1 {
             grid[cursorY][cursorX] = Cell(char: " ", attrs: attrs, width: 1)
-            cursorX = 0; lf()
+            cursorX = 0; pendingWrap = false; lf()
         }
         guard cursorY >= 0, cursorY < rows, cursorX >= 0, cursorX < cols else { return }
         // IRM: insert mode — shift cells right before writing
@@ -699,6 +704,8 @@ class Terminal {
             lastChar = s
             cursorX += 1
         }
+        // If cursor reached right margin, set pending wrap instead of advancing past it
+        if cursorX >= eCols { cursorX = eCols - 1; pendingWrap = true }
     }
 
     func lf() {
@@ -778,7 +785,7 @@ class Terminal {
         scrollTop = 0; scrollBottom = rows - 1
         leftRightMarginMode = false; leftMargin = 0; rightMargin = cols - 1
         insertMode = false
-        appCursorMode = false; appKeypadMode = false; bracketedPasteMode = false; autoWrapMode = true; originMode = false; reverseVideoMode = false
+        appCursorMode = false; appKeypadMode = false; bracketedPasteMode = false; autoWrapMode = true; pendingWrap = false; originMode = false; reverseVideoMode = false
         cursorVisible = true; cursorStyle = 0
         mouseMode = 0; mouseEncoding = 0; focusReportingMode = false
         synchronizedOutput = false
@@ -1097,13 +1104,13 @@ class Terminal {
         let n = p.first ?? 0
         switch f {
         case 0x40: insertChars(max(1, n))                                         // @ — ICH
-        case 0x41: cursorY = max(scrollTop, cursorY - max(1, n))                  // A — CUU
-        case 0x42: cursorY = min(scrollBottom, cursorY + max(1, n))               // B — CUD
-        case 0x43: cursorX = min(cols - 1, cursorX + max(1, n))                   // C — CUF
-        case 0x44: cursorX = max(0, cursorX - max(1, n))                          // D — CUB
-        case 0x45: cursorX = 0; cursorY = min(scrollBottom, cursorY + max(1, n))  // E — CNL
-        case 0x46: cursorX = 0; cursorY = max(scrollTop, cursorY - max(1, n))     // F — CPL
-        case 0x47: cursorX = max(0, min(cols - 1, (n > 0 ? n : 1) - 1))          // G — CHA
+        case 0x41: cursorY = max(scrollTop, cursorY - max(1, n)); pendingWrap = false  // A — CUU
+        case 0x42: cursorY = min(scrollBottom, cursorY + max(1, n)); pendingWrap = false  // B — CUD
+        case 0x43: cursorX = min(cols - 1, cursorX + max(1, n)); pendingWrap = false  // C — CUF
+        case 0x44: cursorX = max(0, cursorX - max(1, n)); pendingWrap = false         // D — CUB
+        case 0x45: cursorX = 0; cursorY = min(scrollBottom, cursorY + max(1, n)); pendingWrap = false  // E — CNL
+        case 0x46: cursorX = 0; cursorY = max(scrollTop, cursorY - max(1, n)); pendingWrap = false     // F — CPL
+        case 0x47: cursorX = max(0, min(cols - 1, (n > 0 ? n : 1) - 1)); pendingWrap = false  // G — CHA
         case 0x48, 0x66:                                                          // H/f — CUP
             let r = (p.count > 0 && p[0] > 0) ? p[0] : 1
             let c = (p.count > 1 && p[1] > 0) ? p[1] : 1
@@ -1112,7 +1119,7 @@ class Terminal {
             } else {
                 cursorY = max(0, min(rows - 1, r - 1))
             }
-            cursorX = max(0, min(cols - 1, c - 1))
+            cursorX = max(0, min(cols - 1, c - 1)); pendingWrap = false
         case 0x49: // I — CHT (cursor forward tab)
             for _ in 0..<max(1, n) { advanceToNextTab() }
         case 0x4A: eraseDisplay(n)                                                // J — ED
@@ -1125,8 +1132,8 @@ class Terminal {
         case 0x58: eraseChars(max(1, n))                                          // X — ECH
         case 0x5A: // Z — CBT (cursor backward tab)
             for _ in 0..<max(1, n) { backToPrevTab() }
-        case 0x60: cursorX = max(0, min(cols - 1, (n > 0 ? n : 1) - 1))          // ` — HPA
-        case 0x61: cursorX = min(cols - 1, cursorX + max(1, n))                   // a — HPR
+        case 0x60: cursorX = max(0, min(cols - 1, (n > 0 ? n : 1) - 1)); pendingWrap = false  // ` — HPA
+        case 0x61: cursorX = min(cols - 1, cursorX + max(1, n)); pendingWrap = false           // a — HPR
         case 0x62: // b — REP (repeat preceding character)
             for _ in 0..<max(1, n) { put(lastChar) }
         case 0x63: // c — DA1
@@ -1137,7 +1144,8 @@ class Terminal {
             } else {
                 cursorY = max(0, min(rows - 1, (n > 0 ? n : 1) - 1))
             }
-        case 0x65: cursorY = min(rows - 1, cursorY + max(1, n))                   // e — VPR
+            pendingWrap = false
+        case 0x65: cursorY = min(rows - 1, cursorY + max(1, n)); pendingWrap = false  // e — VPR
         case 0x67: // g — TBC (tab clear)
             if n == 0 { tabStops.remove(cursorX) }       // clear tab at cursor
             else if n == 3 { tabStops.removeAll() }       // clear all tabs
@@ -1162,7 +1170,7 @@ class Terminal {
             let bot = (p.count > 1 && p[1] > 0) ? p[1] - 1 : rows - 1
             scrollTop = max(0, min(rows - 1, top))
             scrollBottom = max(scrollTop, min(rows - 1, bot))
-            cursorX = 0; cursorY = originMode ? scrollTop : 0
+            cursorX = 0; cursorY = originMode ? scrollTop : 0; pendingWrap = false
         case 0x73: // s — SCOSC or DECSLRM
             if leftRightMarginMode && p.count >= 2 {
                 // DECSLRM — set left/right margins
@@ -1222,7 +1230,7 @@ class Terminal {
             cursorX = 0; cursorY = 0
             scrollTop = 0; scrollBottom = rows - 1
             leftRightMarginMode = false; leftMargin = 0; rightMargin = cols - 1
-            appCursorMode = false; appKeypadMode = false; originMode = false; autoWrapMode = true
+            appCursorMode = false; appKeypadMode = false; originMode = false; autoWrapMode = true; pendingWrap = false
             cursorVisible = true; cursorStyle = 0
             mouseMode = 0; mouseEncoding = 0; focusReportingMode = false
             synchronizedOutput = false
@@ -1300,13 +1308,13 @@ class Terminal {
                 case 47, 1047:
                     altGrid = grid; altLineAttrs = lineAttrs; altX = cursorX; altY = cursorY
                     grid = Self.emptyGrid(cols, rows); lineAttrs = Array(repeating: 0, count: rows)
-                    cursorX = 0; cursorY = 0; scrollTop = 0; scrollBottom = rows - 1
-                case 1048: savedX = cursorX; savedY = cursorY
+                    cursorX = 0; cursorY = 0; scrollTop = 0; scrollBottom = rows - 1; pendingWrap = false
+                case 1048: savedX = cursorX; savedY = cursorY; savedPendingWrap = pendingWrap
                 case 1049:
-                    savedX = cursorX; savedY = cursorY
+                    savedX = cursorX; savedY = cursorY; savedPendingWrap = pendingWrap
                     altGrid = grid; altLineAttrs = lineAttrs; altX = cursorX; altY = cursorY
                     grid = Self.emptyGrid(cols, rows); lineAttrs = Array(repeating: 0, count: rows)
-                    cursorX = 0; cursorY = 0; scrollTop = 0; scrollBottom = rows - 1
+                    cursorX = 0; cursorY = 0; scrollTop = 0; scrollBottom = rows - 1; pendingWrap = false
                 case 1000: mouseMode = 1000  // X10 normal tracking
                 case 1002: mouseMode = 1002  // button-event tracking (report drag)
                 case 1003: mouseMode = 1003  // any-event tracking (report all motion)
@@ -1333,14 +1341,14 @@ class Terminal {
                         if let ala = altLineAttrs { lineAttrs = ala; altLineAttrs = nil }
                         scrollTop = 0; scrollBottom = rows - 1
                     }
-                case 1048: cursorX = savedX; cursorY = savedY
+                case 1048: cursorX = savedX; cursorY = savedY; pendingWrap = savedPendingWrap
                 case 1049:
                     if let ag = altGrid {
                         grid = ag; altGrid = nil
                         if let ala = altLineAttrs { lineAttrs = ala; altLineAttrs = nil }
                         scrollTop = 0; scrollBottom = rows - 1
                     }
-                    cursorX = savedX; cursorY = savedY
+                    cursorX = savedX; cursorY = savedY; pendingWrap = savedPendingWrap
                 case 1000, 1002, 1003: mouseMode = 0
                 case 1004: focusReportingMode = false
                 case 1005, 1006: mouseEncoding = 0
