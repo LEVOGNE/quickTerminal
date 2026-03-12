@@ -6975,7 +6975,7 @@ class GitHubClient {
                 DispatchQueue.main.async { completion(true, cloneURL) }
             } else {
                 let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
-                let msg = json?["message"] as? String ?? "Fehler \(http.statusCode)"
+                let msg = json?["message"] as? String ?? "Error \(http.statusCode)"
                 DispatchQueue.main.async { completion(false, msg) }
             }
         }.resume()
@@ -8035,7 +8035,7 @@ class GitPanelView: NSView {
         commitField.target = self
         commitField.action = #selector(saveClicked)
 
-        saveBtn.title = "💾  Speichern"
+        saveBtn.title = "💾  Save"
         saveBtn.bezelStyle = .rounded
         saveBtn.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
         saveBtn.contentTintColor = NSColor(calibratedRed: 0.45, green: 0.85, blue: 0.55, alpha: 1.0)
@@ -8648,7 +8648,7 @@ class GitPanelView: NSView {
                 if result.success {
                     self.refresh()
                 } else {
-                    self.showFeedback("Fehler: \(result.output)", success: false)
+                    self.showFeedback("Error: \(result.output)", success: false)
                 }
             }
         }
@@ -8672,7 +8672,7 @@ class GitPanelView: NSView {
             let stage = self.runGitAction(["add", "-A"], cwd: cwd)
             guard stage.success else {
                 DispatchQueue.main.async {
-                    self.showFeedback("Fehler: \(stage.output)", success: false)
+                    self.showFeedback("Error: \(stage.output)", success: false)
                     self.commitField.isEnabled = true
                     self.saveBtn.isEnabled = true
                 }
@@ -8682,7 +8682,7 @@ class GitPanelView: NSView {
             DispatchQueue.main.async {
                 self.commitField.isEnabled = true
                 self.saveBtn.isEnabled = true
-                self.showFeedback(commit.success ? "✓  Gespeichert: \(msg)" : "Fehler: \(commit.output)", success: commit.success)
+                self.showFeedback(commit.success ? "✓  Saved: \(msg)" : "Error: \(commit.output)", success: commit.success)
                 self.refresh()
             }
         }
@@ -8703,7 +8703,7 @@ class GitPanelView: NSView {
             let result = self.runGitAction(["push", "-u", "origin", branch], cwd: cwd)
             DispatchQueue.main.async {
                 self.uploadBtn.isEnabled = true
-                self.showFeedback(result.success ? "✓  Hochgeladen!" : "Fehler: \(result.output)", success: result.success)
+                self.showFeedback(result.success ? "✓  Uploaded!" : "Error: \(result.output)", success: result.success)
                 self.github.cache.lastFetch = .distantPast
                 self.refresh()
             }
@@ -8720,7 +8720,7 @@ class GitPanelView: NSView {
             let result = self.runGitAction(["pull"], cwd: cwd)
             DispatchQueue.main.async {
                 self.updateBtn.isEnabled = true
-                self.showFeedback(result.success ? "✓  Aktualisiert!" : "Fehler: \(result.output)", success: result.success)
+                self.showFeedback(result.success ? "✓  Updated!" : "Error: \(result.output)", success: result.success)
                 self.github.cache.lastFetch = .distantPast
                 self.refresh()
             }
@@ -8830,7 +8830,7 @@ class GitPanelView: NSView {
             } else {
                 self.repoCreateBtn.isEnabled = true
                 self.repoCreateBtn.title = "✔  Create & Upload"
-                self.showFeedback("Fehler: \(cloneURLOrError ?? "Unbekannter Fehler")", success: false)
+                self.showFeedback("Error: \(cloneURLOrError ?? "Unknown error")", success: false)
             }
         }
     }
