@@ -9385,6 +9385,7 @@ class WebPickerSidebarView: NSView {
         tabSearchTimer?.invalidate(); tabSearchTimer = nil
         titlePollTimer?.invalidate(); titlePollTimer = nil
         isConnected = false
+        cdp.onDisconnected = nil
         pickBtn.title = "  🎯  Element wählen"
         let cleanup = "window.__qtPickerActive = false; document.querySelectorAll('*').forEach(function(el){el.style.outline='';el.style.outlineOffset='';}); void 0;"
         if let tid = currentTargetId {
@@ -9420,18 +9421,25 @@ class WebPickerSidebarView: NSView {
         }
     }
 
+    /// Handles unexpected disconnection (WebSocket drop, tab closed externally).
+    /// Does NOT send cleanup JS or close the tab — connection is already gone.
+    private func handleUnexpectedDisconnect(message: String) {
+        guard isConnected else { return }
+        print("[WebPicker] \(message)")
+        isConnected = false
+        pollTimer?.invalidate(); pollTimer = nil
+        titlePollTimer?.invalidate(); titlePollTimer = nil
+        currentTargetId = nil
+        cdp.disconnect()
+        showDisconnectedState()
+        setStatusText(message)
+    }
+
     private func doConnect(to wsURL: String) {
         currentTargetId = URL(string: wsURL)?.lastPathComponent
         tabSearchTimer?.invalidate(); tabSearchTimer = nil
         cdp.onDisconnected = { [weak self] in
-            guard let self = self, self.isConnected else { return }
-            print("[WebPicker] WebSocket lost — resetting to disconnected")
-            self.isConnected = false
-            self.pollTimer?.invalidate(); self.pollTimer = nil
-            self.titlePollTimer?.invalidate(); self.titlePollTimer = nil
-            self.currentTargetId = nil
-            self.showDisconnectedState()
-            self.setStatusText("Verbindung verloren")
+            self?.handleUnexpectedDisconnect(message: "Verbindung verloren")
         }
         cdp.connect(wsURL: wsURL) { [weak self] success in
             guard let self = self else { return }
@@ -9456,13 +9464,7 @@ class WebPickerSidebarView: NSView {
                 self.showConnectedState(hostname: hostname, navigating: hostname.isEmpty)
             } else {
                 // nil = tab not found in /json/list — tab was closed externally
-                print("[WebPicker] tab gone from /json/list — disconnecting")
-                self.isConnected = false
-                self.titlePollTimer?.invalidate(); self.titlePollTimer = nil
-                self.currentTargetId = nil
-                self.cdp.disconnect()
-                self.showDisconnectedState()
-                self.setStatusText("Tab wurde geschlossen")
+                self.handleUnexpectedDisconnect(message: "Tab wurde geschlossen")
             }
         }
     }
