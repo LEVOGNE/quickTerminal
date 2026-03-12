@@ -8893,7 +8893,7 @@ class ChromeCDPClient {
             kill.standardError  = FileHandle.nullDevice
             _ = try? kill.run()
         }
-        onStatus?("Chrome wird beendet...")
+        onStatus?("Stopping Chrome...")
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
             guard let self = self else { return }
             self.openChrome()
@@ -8911,7 +8911,7 @@ class ChromeCDPClient {
                 completion()
             } else {
                 let dots = String(repeating: ".", count: 4 - (attempts % 4))
-                onStatus?("Warte auf Chrome\(dots)")
+                onStatus?("Waiting for Chrome\(dots)")
                 DispatchQueue.main.asyncAfter(deadline: .now() + interval) {
                     self.pollUntilAvailable(attempts: attempts - 1, interval: interval,
                                              onStatus: onStatus, completion: completion)
@@ -9116,7 +9116,7 @@ class WebPickerSidebarView: NSView {
     private let closeBtn      = NSButton()
     private let titleSep      = NSView()
     private let statusDot     = NSView()
-    private let statusLabel   = NSTextField(labelWithString: "Nicht verbunden")
+    private let statusLabel   = NSTextField(labelWithString: "Not connected")
     private let pickBtn       = NSButton()
     private let connectBtn    = NSButton()
     private let disconnectBtn = NSButton()
@@ -9166,7 +9166,7 @@ class WebPickerSidebarView: NSView {
         addSubview(statusLabel)
 
         // ── Pick button (main action, teal styled) ──
-        pickBtn.title = "  🎯  Element wählen"
+        pickBtn.title = "Pick Element"
         pickBtn.bezelStyle = .rounded
         pickBtn.isEnabled = false
         pickBtn.font = NSFont.systemFont(ofSize: 11, weight: .medium)
@@ -9278,7 +9278,7 @@ class WebPickerSidebarView: NSView {
 
     private func showDisconnectedState() {
         setStatusDot(.systemGray)
-        setStatusText("Nicht verbunden")
+        setStatusText("Not connected")
         pickBtn.isHidden = true
         disconnectBtn.isHidden = true
         connectBtn.isHidden = false
@@ -9303,7 +9303,7 @@ class WebPickerSidebarView: NSView {
     private func showConnectedState(hostname: String, navigating: Bool) {
         if navigating {
             setStatusDot(.systemOrange)
-            setStatusText("Navigiere zur Webseite")
+            setStatusText("Navigate to a website")
         } else {
             setStatusDot(Self.teal)
             setStatusText(hostname.isEmpty ? "Verbunden" : hostname)
@@ -9335,8 +9335,8 @@ class WebPickerSidebarView: NSView {
         pollTimer?.invalidate(); pollTimer = nil
         tabSearchTimer?.invalidate(); tabSearchTimer = nil
         titlePollTimer?.invalidate(); titlePollTimer = nil
-        pickBtn.title = "  🎯  Element wählen"
-        showConnectingState("Verbinde...")
+        pickBtn.title = "Pick Element"
+        showConnectingState("Connecting...")
         cdp.isAvailable { [weak self] available in
             guard let self = self else { return }
             if available {
@@ -9355,7 +9355,7 @@ class WebPickerSidebarView: NSView {
         titlePollTimer?.invalidate(); titlePollTimer = nil
         isConnected = false
         cdp.onDisconnected = nil
-        pickBtn.title = "  🎯  Element wählen"
+        pickBtn.title = "Pick Element"
         let cleanup = "window.__qtPickerActive = false; document.querySelectorAll('*').forEach(function(el){el.style.outline='';el.style.outlineOffset='';}); void 0;"
         if let tid = currentTargetId {
             cdp.evaluate(cleanup) { [weak self] _ in
@@ -9376,14 +9376,14 @@ class WebPickerSidebarView: NSView {
             if let wsURL = wsURL {
                 self.doConnect(to: wsURL)
             } else {
-                self.showConnectingState("Öffne neuen Tab...")
+                self.showConnectingState("Opening new tab...")
                 self.cdp.createBlankTab { [weak self] newWS in
                     guard let self = self else { return }
                     if let newWS = newWS {
                         self.doConnect(to: newWS)
                     } else {
                         self.showDisconnectedState()
-                        self.setStatusText("Chrome nicht erreichbar")
+                        self.setStatusText("Chrome not reachable")
                     }
                 }
             }
@@ -9407,7 +9407,7 @@ class WebPickerSidebarView: NSView {
         currentTargetId = URL(string: wsURL)?.lastPathComponent
         tabSearchTimer?.invalidate(); tabSearchTimer = nil
         cdp.onDisconnected = { [weak self] in
-            self?.handleUnexpectedDisconnect(message: "Verbindung verloren")
+            self?.handleUnexpectedDisconnect(message: "Connection lost")
         }
         cdp.connect(wsURL: wsURL) { [weak self] success in
             guard let self = self else { return }
@@ -9417,7 +9417,7 @@ class WebPickerSidebarView: NSView {
                 self.startTitlePolling()
             } else {
                 self.showDisconnectedState()
-                self.setStatusText("Verbindung fehlgeschlagen")
+                self.setStatusText("Connection failed")
                 self.scheduleTabSearch()
             }
         }
@@ -9432,7 +9432,7 @@ class WebPickerSidebarView: NSView {
                 self.showConnectedState(hostname: hostname, navigating: hostname.isEmpty)
             } else {
                 // nil = tab not found in /json/list — tab was closed externally
-                self.handleUnexpectedDisconnect(message: "Tab wurde geschlossen")
+                self.handleUnexpectedDisconnect(message: "Tab was closed")
             }
         }
     }
@@ -9461,7 +9461,7 @@ class WebPickerSidebarView: NSView {
     // MARK: - Picker
 
     @objc private func startPicking() {
-        pickBtn.title = "⏳  Warte auf Klick..."; pickBtn.isEnabled = false
+        pickBtn.title = "Waiting for click..."; pickBtn.isEnabled = false
         styleTealButton(pickBtn, enabled: false)
         previewLabel.stringValue = ""; feedbackLabel.isHidden = true
         cdp.evaluate("window.__qtPickedHTML = null; window.__qtPickerActive = false; void 0;") { _ in }
@@ -9504,7 +9504,7 @@ class WebPickerSidebarView: NSView {
     }
 
     private func onHTMLPicked(_ html: String) {
-        pickBtn.title = "  🎯  Element wählen"; pickBtn.isEnabled = true
+        pickBtn.title = "Pick Element"; pickBtn.isEnabled = true
         styleTealButton(pickBtn, enabled: true)
         previewLabel.stringValue = String(html.prefix(300))
         NSPasteboard.general.clearContents()
@@ -9516,7 +9516,7 @@ class WebPickerSidebarView: NSView {
             vDown?.flags = .maskCommand; vUp?.flags = .maskCommand
             vDown?.post(tap: .cghidEventTap); vUp?.post(tap: .cghidEventTap)
         }
-        feedbackLabel.stringValue = "✓ Kopiert!"; feedbackLabel.isHidden = false
+        feedbackLabel.stringValue = "✓ Copied!"; feedbackLabel.isHidden = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
             self?.feedbackLabel.isHidden = true
         }
