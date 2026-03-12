@@ -4147,7 +4147,7 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
         gitBtn.translatesAutoresizingMaskIntoConstraints = false
         addSubview(gitBtn)
 
-        // HTML Picker button
+        // WebPicker button
         htmlBtn = HoverButton(title: "</>", fontSize: 9, weight: .bold,
             normalColor: NSColor(calibratedWhite: 0.5, alpha: 1.0),
             hoverColor: NSColor(calibratedRed: 0.35, green: 0.85, blue: 0.55, alpha: 1.0),
@@ -5913,7 +5913,7 @@ class SettingsOverlay: NSView {
         rows.append(makeToggleRow(label: "Launch at Login", settingsKey: "autoStartEnabled"))
         rows.append(makeToggleRow(label: "Auto-Check Updates", settingsKey: "autoCheckUpdates"))
 
-        // HTML Picker
+        // WebPicker
         rows.append(makeSectionHeader("WebPicker"))
         rows.append(makeSegmentRow(label: "Browser", options: ["Chrome", "Safari"],
             selected: 0,
