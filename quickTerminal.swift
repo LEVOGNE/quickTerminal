@@ -8876,6 +8876,262 @@ class ChromeCDPClient {
     }
 }
 
+// MARK: - HTML Picker Panel
+
+class HTMLPickerPanel: NSPanel {
+    private let cdp = ChromeCDPClient()
+    private var pollTimer: Timer?
+
+    // UI elements
+    private let statusDot = NSView()
+    private let statusLabel = NSTextField(labelWithString: "Nicht verbunden")
+    private let pickBtn = NSButton()
+    private let divider = NSBox()
+    private let previewLabel = NSTextField(labelWithString: "")
+    private let feedbackLabel = NSTextField(labelWithString: "")
+
+    convenience init() {
+        self.init(contentRect: NSRect(x: 0, y: 0, width: 260, height: 175),
+                  styleMask: [.titled, .closable, .nonactivatingPanel, .hudWindow],
+                  backing: .buffered, defer: false)
+        title = "HTML Picker"
+        isFloatingPanel = true
+        level = .floating
+        isMovableByWindowBackground = true
+        hidesOnDeactivate = false
+        setupUI()
+        center()
+    }
+
+    override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask,
+                  backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
+        super.init(contentRect: contentRect, styleMask: style,
+                   backing: backingStoreType, defer: flag)
+    }
+
+    private func setupUI() {
+        guard let cv = contentView else { return }
+
+        statusDot.wantsLayer = true
+        statusDot.layer?.cornerRadius = 4
+        statusDot.layer?.backgroundColor = NSColor.systemGray.cgColor
+        statusDot.translatesAutoresizingMaskIntoConstraints = false
+
+        statusLabel.font = NSFont.systemFont(ofSize: 11)
+        statusLabel.textColor = .secondaryLabelColor
+        statusLabel.isEditable = false
+        statusLabel.isBordered = false
+        statusLabel.drawsBackground = false
+        statusLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        pickBtn.title = "🎯  Element wählen"
+        pickBtn.bezelStyle = .rounded
+        pickBtn.isEnabled = false
+        pickBtn.target = self
+        pickBtn.action = #selector(startPicking)
+        pickBtn.translatesAutoresizingMaskIntoConstraints = false
+
+        divider.boxType = .separator
+        divider.translatesAutoresizingMaskIntoConstraints = false
+
+        previewLabel.font = NSFont.monospacedSystemFont(ofSize: 9.5, weight: .regular)
+        previewLabel.textColor = .secondaryLabelColor
+        previewLabel.isEditable = false
+        previewLabel.isBordered = false
+        previewLabel.drawsBackground = false
+        previewLabel.maximumNumberOfLines = 3
+        previewLabel.lineBreakMode = .byTruncatingTail
+        previewLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        feedbackLabel.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        feedbackLabel.textColor = NSColor.systemGreen
+        feedbackLabel.isEditable = false
+        feedbackLabel.isBordered = false
+        feedbackLabel.drawsBackground = false
+        feedbackLabel.isHidden = true
+        feedbackLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        [statusDot, statusLabel, pickBtn, divider, previewLabel, feedbackLabel].forEach { cv.addSubview($0) }
+
+        NSLayoutConstraint.activate([
+            statusDot.leadingAnchor.constraint(equalTo: cv.leadingAnchor, constant: 16),
+            statusDot.topAnchor.constraint(equalTo: cv.topAnchor, constant: 14),
+            statusDot.widthAnchor.constraint(equalToConstant: 8),
+            statusDot.heightAnchor.constraint(equalToConstant: 8),
+
+            statusLabel.leadingAnchor.constraint(equalTo: statusDot.trailingAnchor, constant: 7),
+            statusLabel.centerYAnchor.constraint(equalTo: statusDot.centerYAnchor),
+            statusLabel.trailingAnchor.constraint(equalTo: cv.trailingAnchor, constant: -16),
+
+            pickBtn.leadingAnchor.constraint(equalTo: cv.leadingAnchor, constant: 12),
+            pickBtn.trailingAnchor.constraint(equalTo: cv.trailingAnchor, constant: -12),
+            pickBtn.topAnchor.constraint(equalTo: statusDot.bottomAnchor, constant: 10),
+
+            divider.leadingAnchor.constraint(equalTo: cv.leadingAnchor, constant: 12),
+            divider.trailingAnchor.constraint(equalTo: cv.trailingAnchor, constant: -12),
+            divider.topAnchor.constraint(equalTo: pickBtn.bottomAnchor, constant: 10),
+
+            previewLabel.leadingAnchor.constraint(equalTo: cv.leadingAnchor, constant: 12),
+            previewLabel.trailingAnchor.constraint(equalTo: cv.trailingAnchor, constant: -12),
+            previewLabel.topAnchor.constraint(equalTo: divider.bottomAnchor, constant: 8),
+
+            feedbackLabel.leadingAnchor.constraint(equalTo: cv.leadingAnchor, constant: 12),
+            feedbackLabel.bottomAnchor.constraint(equalTo: cv.bottomAnchor, constant: -12),
+        ])
+    }
+
+    // MARK: - Connection
+
+    func connect() {
+        setStatus("Verbinde...", color: .systemOrange)
+        pickBtn.isEnabled = false
+        cdp.isAvailable { [weak self] available in
+            guard let self = self else { return }
+            if available {
+                self.connectToTab()
+            } else {
+                self.setStatus("Chrome wird gestartet...", color: .systemOrange)
+                self.cdp.launchChrome { self.connectToTab() }
+            }
+        }
+    }
+
+    private func connectToTab() {
+        cdp.getActiveTabWS { [weak self] wsURL in
+            guard let self = self else { return }
+            guard let wsURL = wsURL else {
+                self.setStatus("Kein Tab gefunden", color: .systemRed)
+                return
+            }
+            self.cdp.connect(wsURL: wsURL) { success in
+                if success {
+                    self.setStatus("Chrome verbunden", color: .systemGreen)
+                    self.pickBtn.isEnabled = true
+                } else {
+                    self.setStatus("Verbindung fehlgeschlagen", color: .systemRed)
+                }
+            }
+        }
+    }
+
+    private func setStatus(_ text: String, color: NSColor) {
+        statusLabel.stringValue = text
+        statusDot.layer?.backgroundColor = color.cgColor
+    }
+
+    // MARK: - Picker
+
+    @objc func startPicking() {
+        pickBtn.title = "⏳  Warte auf Klick..."
+        pickBtn.isEnabled = false
+        previewLabel.stringValue = ""
+        feedbackLabel.isHidden = true
+
+        cdp.evaluate("window.__qtPickedHTML = null; void 0;") { _ in }
+
+        let pickerJS = """
+        (function() {
+          if (window.__qtPickerActive) return 'already_active';
+          window.__qtPickerActive = true;
+          window.__qtPickedHTML = null;
+          var last = null;
+          function over(e) {
+            if (last && last !== e.target) { last.style.outline = ''; last.style.outlineOffset = ''; }
+            last = e.target;
+            last.style.outline = '2px solid #4A90D9';
+            last.style.outlineOffset = '-2px';
+          }
+          function out(e) {
+            if (e.target === last) { e.target.style.outline = ''; e.target.style.outlineOffset = ''; }
+          }
+          function pick(e) {
+            e.preventDefault(); e.stopPropagation();
+            if (last) { last.style.outline = ''; last.style.outlineOffset = ''; }
+            window.__qtPickedHTML = e.target.outerHTML;
+            window.__qtPickerActive = false;
+            document.removeEventListener('mouseover', over, true);
+            document.removeEventListener('mouseout', out, true);
+            document.removeEventListener('click', pick, true);
+          }
+          document.addEventListener('mouseover', over, true);
+          document.addEventListener('mouseout', out, true);
+          document.addEventListener('click', pick, true);
+          return 'started';
+        })();
+        """
+
+        cdp.evaluate(pickerJS) { [weak self] _ in
+            self?.startPolling()
+        }
+    }
+
+    private func startPolling() {
+        pollTimer?.invalidate()
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
+            self?.pollForResult()
+        }
+    }
+
+    private func pollForResult() {
+        cdp.evaluate("typeof window.__qtPickedHTML !== 'undefined' && window.__qtPickedHTML !== null ? window.__qtPickedHTML : null") { [weak self] result in
+            guard let self = self,
+                  let dict = result,
+                  let value = dict["value"] as? String,
+                  !value.isEmpty else { return }
+            self.pollTimer?.invalidate()
+            self.pollTimer = nil
+            self.onHTMLPicked(value)
+        }
+    }
+
+    private func onHTMLPicked(_ html: String) {
+        pickBtn.title = "🎯  Element wählen"
+        pickBtn.isEnabled = true
+        previewLabel.stringValue = String(html.prefix(200))
+
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(html, forType: .string)
+
+        autoPaste()
+        showFeedback("✓ Eingefügt!")
+    }
+
+    private func autoPaste() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            let src = CGEventSource(stateID: .hidSystemState)
+            let vDown = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: true)
+            let vUp   = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: false)
+            vDown?.flags = .maskCommand
+            vUp?.flags   = .maskCommand
+            vDown?.post(tap: .cghidEventTap)
+            vUp?.post(tap: .cghidEventTap)
+        }
+    }
+
+    private func showFeedback(_ text: String) {
+        feedbackLabel.stringValue = text
+        feedbackLabel.isHidden = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.feedbackLabel.isHidden = true
+        }
+    }
+
+    // MARK: - Cleanup
+
+    override func close() {
+        pollTimer?.invalidate()
+        pollTimer = nil
+        cdp.evaluate("window.__qtPickerActive = false; document.querySelectorAll('*').forEach(function(el){el.style.outline='';el.style.outlineOffset='';});") { _ in }
+        cdp.disconnect()
+        super.close()
+    }
+
+    deinit {
+        pollTimer?.invalidate()
+        cdp.disconnect()
+    }
+}
+
 // MARK: - Split Container
 
 class PassthroughBlurView: NSVisualEffectView {
