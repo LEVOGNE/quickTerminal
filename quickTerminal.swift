@@ -9719,7 +9719,7 @@ class WebPickerSidebarView: NSView {
         guard let tid = currentTargetId else { return }
         cdp.getTabHostname(targetId: tid) { [weak self] hostname in
             guard let self = self else { return }
-            let navigating = hostname == nil || hostname!.isEmpty
+            let navigating = hostname?.isEmpty != false
             self.showConnectedState(hostname: hostname ?? "", navigating: navigating)
             self.titlePollTimer?.invalidate()
             self.titlePollTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
@@ -9781,7 +9781,7 @@ class WebPickerSidebarView: NSView {
                           let inner = (result?["result"] as? [String: Any]),
                           let val = inner["value"] as? String, !val.isEmpty else { return }
                     self.pollTimer?.invalidate(); self.pollTimer = nil
-                    DispatchQueue.main.async { self.onHTMLPicked(val) }
+                    self.onHTMLPicked(val)
                 }
             }
         }
