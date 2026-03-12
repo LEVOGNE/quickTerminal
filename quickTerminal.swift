@@ -11697,7 +11697,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             UserDefaults.standard.set(true, forKey: "htmlPickerSafariHintShown")
             showGenericToast(badge: "SAFARI",
                 text: "Web Inspector aktivieren: Safari → Entwickler → Remote Automation erlauben",
-                badgeColor: NSColor(calibratedRed: 0.3, green: 0.5, blue: 0.9, alpha: 1.0))
+                badgeColor: NSColor(calibratedRed: 0.3, green: 0.5, blue: 0.9, alpha: 1.0),
+                identifier: "safariHintToast")
         }
         let panel = HTMLPickerPanel()
         htmlPickerPanel = panel
