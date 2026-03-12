@@ -5894,7 +5894,7 @@ class SettingsOverlay: NSView {
         // AI Usage
         rows.append(makeSectionHeader("Claude Code"))
         rows.append(makeToggleRow(label: "Show Usage Badge", settingsKey: "showAIUsage"))
-        rows.append(makeSegmentRow(label: "Refresh", options: ["30s", "1m", "5m"],
+        rows.append(makeSegmentRow(label: "Refresh", options: ["5m", "10m", "30m"],
             selected: UserDefaults.standard.integer(forKey: "aiUsageRefreshIndex"),
             key: "aiUsageRefreshIndex"))
         rows.append(makeStatusRow())
@@ -6602,7 +6602,7 @@ class SettingsOverlay: NSView {
         "autoCheckUpdates": true,
         "htmlPickerBrowser": 0,
         "showAIUsage": true,
-        "aiUsageRefreshIndex": 2,
+        "aiUsageRefreshIndex": 0,
     ]
 
     private func isAtDefaults() -> Bool {
@@ -6996,12 +6996,12 @@ struct AITokenStore {
     }
 }
 
-struct AIUsageCategory {
+struct AIUsageCategory: Codable {
     let utilization: Double   // 0-100
     let resetsAt: Date?
 }
 
-struct AIUsageData {
+struct AIUsageData: Codable {
     let fiveHour: AIUsageCategory?
     let sevenDay: AIUsageCategory?
     let sevenDayOpus: AIUsageCategory?
@@ -7016,11 +7016,12 @@ class AIUsageManager {
     private static let usageURL = "https://api.anthropic.com/api/oauth/usage"
 
     var onUpdate: ((AIUsageData?) -> Void)?
-    private(set) var latestData: AIUsageData?
+    private(set) var latestData: AIUsageData? { didSet { if let d = latestData { saveToDisk(d) } } }
     private(set) var lastStatusCode = 0
     private var pollTimer: Timer?
     private var cachedToken: String?
     private var tokenChecked = false
+    private static let cacheKey = "aiUsageDataCache"
     private let iso8601: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -7038,6 +7039,20 @@ class AIUsageManager {
     var hasToken: Bool { readToken() != nil }
 
     func clearData() { latestData = nil; cachedToken = nil; tokenChecked = false }
+
+    /// Load last cached data from disk (called on startup so badge shows immediately)
+    func loadCachedData() {
+        guard let raw = UserDefaults.standard.data(forKey: Self.cacheKey),
+              let data = try? JSONDecoder().decode(AIUsageData.self, from: raw) else { return }
+        latestData = data
+        onUpdate?(data)
+    }
+
+    private func saveToDisk(_ data: AIUsageData) {
+        if let raw = try? JSONEncoder().encode(data) {
+            UserDefaults.standard.set(raw, forKey: Self.cacheKey)
+        }
+    }
 
     private func debugLog(_ msg: String) {
         let line = "[\(Date())] \(msg)\n"
@@ -11017,8 +11032,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         let showUsage = UserDefaults.standard.bool(forKey: "showAIUsage")
         footerView.usageBadge.isHidden = !showUsage
+        // Load cached data immediately so badge/popover show last known state on startup
+        AIUsageManager.shared.loadCachedData()
         if showUsage {
-            let intervals: [TimeInterval] = [30, 60, 300]
+            let intervals: [TimeInterval] = [300, 600, 1800]
             let idx = UserDefaults.standard.integer(forKey: "aiUsageRefreshIndex")
             AIUsageManager.shared.startPolling(interval: intervals[min(idx, 2)])
         }
@@ -11523,7 +11540,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             let on = value as? Bool ?? false
             footerView.usageBadge.isHidden = !on
             if on {
-                let intervals: [TimeInterval] = [30, 60, 300]
+                let intervals: [TimeInterval] = [300, 600, 1800]
                 let idx = UserDefaults.standard.integer(forKey: "aiUsageRefreshIndex")
                 AIUsageManager.shared.startPolling(interval: intervals[min(idx, 2)])
             } else {
@@ -11532,7 +11549,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
             footerView.needsLayout = true
         case "aiUsageRefreshIndex":
-            let intervals: [TimeInterval] = [30, 60, 300]
+            let intervals: [TimeInterval] = [300, 600, 1800]
             let idx = value as? Int ?? 1
             AIUsageManager.shared.updateInterval(intervals[min(idx, 2)])
         default: break
