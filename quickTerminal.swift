@@ -12527,7 +12527,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let ratio     = activeTab < tabGitRatios.count ? tabGitRatios[activeTab] : gitDefaultRatioH
         let picker    = webPickerSidebarView
         let divThick: CGFloat = 2
-        let pickerFixedH: CGFloat = 180   // HTML picker takes a fixed 180px at top of right column
+        let pickerFixedH: CGFloat = 180   // WebPicker takes a fixed 180px at top of right column
 
         // ── Determine right sidebar ──────────────────────────────────────────
         let hasGitRight   = pos == .right && gitPanel != nil
