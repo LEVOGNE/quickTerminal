@@ -4,7 +4,7 @@
 
 <br>
 
-<img src="quickTERMINAL.png" width="700" alt="quickTERMINAL Screenshot">
+<img src="quickTERMINAL.gif" width="700" alt="quickTERMINAL Demo">
 
 <br>
 
@@ -16,13 +16,13 @@
 
 ![macOS](https://img.shields.io/badge/macOS-12%2B-black?style=for-the-badge&logo=apple&logoColor=white)
 ![Swift](https://img.shields.io/badge/Swift-5.9-F05138?style=for-the-badge&logo=swift&logoColor=white)
-![Lines](https://img.shields.io/badge/10000%2B_Lines-One_File-blue?style=for-the-badge)
+![Lines](https://img.shields.io/badge/13000%2B_Lines-One_File-blue?style=for-the-badge)
 ![App](https://img.shields.io/badge/App-4.8_MB-purple?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-Free_for_Personal_Use-green?style=for-the-badge)
 
 <br>
 
-[**Download quickTerminal.app (v1.2.1)**](https://github.com/LEVOGNE/quickTerminal/releases/latest) · [**Website**](https://levogne.github.io/quickTerminal/)
+[**Download quickTerminal.app (v1.3.0)**](https://github.com/LEVOGNE/quickTerminal/releases/latest) · [**Website**](https://levogne.github.io/quickTerminal/)
 
 ---
 
@@ -64,7 +64,7 @@
 ## Why quickTERMINAL?
 
 > [!IMPORTANT]
-> **10000+ lines. One file. 4.8 MB app. Full terminal emulation.**
+> **13,000+ lines. One file. 4.8 MB app. Full terminal emulation.**
 >
 > No Electron. No WebView. No libvte. No SwiftTerm.
 > Written from scratch with a hand-rolled VT parser, direct PTY management,
@@ -141,6 +141,8 @@
 | :arrows_counterclockwise: | **Auto-Update** | Built-in update system — checks GitHub Releases every 72h, downloads + installs + restarts seamlessly |
 | :octocat: | **Git Integration** | Built-in Git panel — branch, status, diff, commit history with GitHub API support |
 | :bar_chart: | **Claude Code Usage** | Live Claude Code subscription usage in footer — session %, weekly limits, auto-connected |
+| :globe_with_meridians: | **WebPicker** | CDP-based DOM element picker — connect to Chrome, hover-select any element, copies outerHTML to clipboard |
+| :clapper: | **Onboarding Video** | First-launch intro video panel — plays once automatically, never shown again |
 
 <br>
 
@@ -299,6 +301,7 @@ IND  NEL  HTS  RI  DCS  CSI  OSC  ST (8-bit C1)
 | :bar_chart: | **Claude Code Usage** | Live usage badge in footer — auto-connects to Claude Code, shows session & weekly limits |
 | :shield: | **Crash Reporting** | Automatic crash logs to `~/.quickterminal/crash.log` |
 | :arrows_counterclockwise: | **Auto-Update** | Checks GitHub Releases every 72h, one-click install with progress bar, session-preserving restart |
+| :globe_with_meridians: | **WebPicker** | Floating sidebar for Chrome CDP element picking — connect, select DOM elements, auto-paste HTML |
 
 <br>
 
@@ -548,10 +551,11 @@ quickTerminal.app (4.8 MB)
 │   │   ├── _IosevkaThin-terminal.ttf 40 KB
 │   │   └── shell/ ················· configs, themes, syntax highlighting
 │   ├── Resources/
-│   │   └── AppIcon.icns ··········· app icon (16px–1024px)
+│   │   ├── AppIcon.icns ··········· app icon (16px–1024px)
+│   │   └── quickTERMINAL.mp4 ·· Onboarding video (first-launch, plays once)
 │   └── Info.plist ················· LSUIElement=true (menu bar app)
 
-quickTerminal.swift (single file, ~10000 lines)
+quickTerminal.swift (single file, ~13000 lines)
 │
 ├── Terminal ·················· VT parser + state machine + grid
 │   ├── Cell ················· Character + attributes + width + hyperlink
@@ -593,6 +597,10 @@ quickTerminal.swift (single file, ~10000 lines)
 │   ├── SplitContainer ······· Vertical/horizontal split panes
 │   └── Scrollback Search ···· Full-text search with match highlighting
 │
+├── WebPickerSidebarView ·· Chrome CDP element picker with connect/disconnect
+├── ChromeCDPClient ········ WebSocket CDP client for Chrome DevTools Protocol
+└── OnboardingPanel ········ First-launch video panel (plays once, AVKit)
+│
 └── Build Pipeline
     bash build.sh     → quickTerminal binary (local testing)
     bash build_app.sh → quickTerminal.app (4.8 MB bundle)
@@ -626,7 +634,7 @@ bash build_zip.sh
 > **Requirements:**
 > - macOS 12+ (Monterey or later)
 > - Swift toolchain (included with Xcode or Command Line Tools)
-> - Frameworks: Cocoa, Carbon
+> - Frameworks: Cocoa, Carbon, AVKit
 
 The `.app` bundle (4.8 MB) includes everything — binary, icon, 4 terminal-optimized fonts, shell configs, and prompt themes. The `.zip` adds the installer script and documentation for end users.
 
@@ -658,7 +666,7 @@ quickTERMINAL is source-available with a dual license:
 
 See [LICENSE](./LICENSE) for details. Contact: **l.ersen@icloud.com**
 
-> **10000+ lines of Swift. One file. Zero dependencies. 4.8 MB app. Full VT emulation + auto-updater.**
+> **13,000+ lines of Swift. One file. Zero dependencies. 4.8 MB app. Full VT emulation + auto-updater.**
 
 ### Contributing
 
@@ -691,9 +699,9 @@ This project follows [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
 
 <img src="icon.png" width="64" alt="quickTERMINAL">
 
-### quickTERMINAL v1.2.1
+### quickTERMINAL v1.3.0
 
-*10000+ lines. One file. Zero dependencies. Git panel. Claude Code usage. Auto-updater.*
+*13,000+ lines. One file. Zero dependencies. Git panel. Claude Code usage. Auto-updater.*
 
 *Built with obsessive attention to every escape sequence, every pixel, every frame.*
 

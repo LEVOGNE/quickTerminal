@@ -16,7 +16,7 @@ Hey HN,
 
 I built a terminal emulator for macOS from scratch in a single Swift file.
 
-- 10,000+ lines, one file, zero dependencies
+- 13,000+ lines, one file, zero dependencies
 - Hand-rolled VT100/VT220/xterm parser (13-state FSM)
 - Native Cocoa rendering at 60 FPS (no Electron, no WebView)
 - Lives in the menu bar, toggle with Ctrl+<
@@ -24,6 +24,7 @@ I built a terminal emulator for macOS from scratch in a single Swift file.
 - Built-in command palette (quickBAR) with 40 commands
 - Multi-tab, split panes, session restore
 - Auto-updater that checks GitHub Releases every 72h
+- Built-in WebPicker — Chrome CDP element picker, select any DOM element, copies HTML to clipboard
 - 4.8 MB app bundle, ~1.4 MB binary
 
 No SwiftTerm, no libvte, no terminal library. Every escape sequence parsed from scratch.
@@ -48,7 +49,7 @@ quickTERMINAL — A blazing-fast terminal for macOS, written from scratch in one
 ```
 I've been building a terminal emulator for macOS entirely from scratch.
 
-The entire app is a single Swift file — 10,000+ lines, no external dependencies, no Electron, no WebView.
+The entire app is a single Swift file — 13,000+ lines, no external dependencies, no Electron, no WebView.
 
 What makes it different:
 - Lives in your menu bar (no dock icon), toggle with Ctrl+<
@@ -59,6 +60,7 @@ What makes it different:
 - Multi-tab, split panes, 7 prompt themes
 - Session restore — tabs, splits, working directories all preserved
 - Built-in auto-updater
+- WebPicker — Chrome CDP element picker (select DOM elements, copy outerHTML to terminal)
 - 4.8 MB app bundle
 
 Free for personal use. Source is open on GitHub.
@@ -146,7 +148,7 @@ Download: https://github.com/LEVOGNE/quickTerminal/releases/latest
 ```
 I built a terminal emulator for macOS in ONE Swift file.
 
-10,000+ lines. Zero dependencies. 4.8 MB app.
+13,000+ lines. Zero dependencies. 4.8 MB app.
 
 → Hand-rolled VT parser (13-state FSM)
 → 60 FPS native Cocoa rendering
@@ -196,12 +198,13 @@ A 10k-line single-file terminal emulator for macOS
 ```
 quickTERMINAL is a blazing-fast terminal emulator for macOS, written entirely from scratch in one Swift file.
 
-🚀 10,000+ lines of pure Swift — zero external dependencies
+🚀 13,000+ lines of pure Swift — zero external dependencies
 ⚡ Native Cocoa rendering at 60 FPS
 🎨 24-bit TrueColor, Sixel inline images, 7 prompt themes
 📌 Lives in your menu bar — toggle with Ctrl+<
 🔍 Built-in command palette with 40 commands
 🔄 Auto-updater via GitHub Releases
+🌐 WebPicker — Chrome CDP element picker (select DOM elements, copy HTML to terminal)
 💾 4.8 MB app bundle
 
 No Electron. No WebView. Every escape sequence, every pixel, every frame — built from zero.

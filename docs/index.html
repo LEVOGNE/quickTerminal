@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>quickTERMINAL — A 10k-line single-file terminal emulator for macOS</title>
-<meta name="description" content="A blazing-fast terminal emulator for macOS. 10,000+ lines of pure Swift, zero dependencies, native Cocoa rendering at 60 FPS. Free download. Lives in your menu bar with global hotkey.">
+<meta name="description" content="A blazing-fast terminal emulator for macOS. 10,000+ lines of pure Swift, zero dependencies, native Cocoa rendering at 60 FPS. Free download. Lives in your menu bar with global hotkey. WebPicker, onboarding video.">
 <meta name="keywords" content="terminal emulator, macOS terminal, Swift terminal, command line, developer tools, iTerm2 alternative, Terminal.app alternative, menu bar terminal, open source terminal, macOS developer tools">
 <meta name="author" content="Levent Ersen (LEVOGNE)">
 <meta name="robots" content="index, follow">
@@ -15,7 +15,7 @@
 <meta property="og:description" content="10,000+ lines of pure Swift. One file. Zero dependencies. 4.8 MB. Free for personal use.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://levogne.github.io/quickTerminal/">
-<meta property="og:image" content="https://raw.githubusercontent.com/LEVOGNE/quickTerminal/main/quickTERMINAL.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/LEVOGNE/quickTerminal/main/quickTERMINAL.gif">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:site_name" content="quickTERMINAL">
@@ -25,7 +25,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="quickTERMINAL — Terminal Emulator for macOS">
 <meta name="twitter:description" content="10,000+ lines. One Swift file. Zero dependencies. Native 60 FPS rendering. Free download.">
-<meta name="twitter:image" content="https://raw.githubusercontent.com/LEVOGNE/quickTerminal/main/quickTERMINAL.png">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/LEVOGNE/quickTerminal/main/quickTERMINAL.gif">
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/LEVOGNE/quickTerminal/main/icon.png">
@@ -42,7 +42,7 @@
   "description": "A blazing-fast terminal emulator for macOS, written from scratch in a single Swift file. 10,000+ lines, zero dependencies, native Cocoa rendering at 60 FPS.",
   "url": "https://levogne.github.io/quickTerminal/",
   "downloadUrl": "https://github.com/LEVOGNE/quickTerminal/releases/latest",
-  "softwareVersion": "1.2.1",
+  "softwareVersion": "1.3.0",
   "fileSize": "4.8 MB",
   "author": {
     "@type": "Person",
@@ -56,7 +56,7 @@
     "description": "Free for personal use"
   },
   "screenshot": "https://raw.githubusercontent.com/LEVOGNE/quickTerminal/main/quickTERMINAL.png",
-  "releaseNotes": "Git panel, Claude Code usage tracking, drag & drop, custom tab names, auto-updates",
+  "releaseNotes": "WebPicker (Chrome CDP element picker), onboarding video, English UI, robustness improvements, Git panel enhancements",
   "programmingLanguage": "Swift"
 }
 </script>
@@ -938,7 +938,7 @@ footer {
 
   <div class="hero-badge">
     <span class="dot"></span>
-    v1.2.1 — Git Panel, Claude Code Integration & More
+    v1.3.0 — WebPicker, Onboarding Video & More
   </div>
 
   <h1>
@@ -982,7 +982,7 @@ footer {
         <noscript>
           <div class="terminal-line"><span class="prompt">~ </span><span class="cmd">neofetch --minimal</span></div>
           <div class="terminal-line"><span class="output">  macOS 15.2 Sequoia</span></div>
-          <div class="terminal-line"><span class="output">  Terminal: <span class="highlight">quickTERMINAL v1.2.1</span></span></div>
+          <div class="terminal-line"><span class="output">  Terminal: <span class="highlight">quickTERMINAL v1.3.0</span></span></div>
           <div class="terminal-line"><span class="output">  Shell: zsh 5.9</span></div>
           <div class="terminal-line"><span class="prompt">~ </span><span class="cmd">quickterminal --info</span></div>
           <div class="terminal-line"><span class="output">  <span class="amber">10,247</span> lines | <span class="amber">1</span> file | <span class="amber">0</span> deps | <span class="amber">4.8 MB</span></span></div>
@@ -1066,6 +1066,16 @@ footer {
         <div class="feature-icon">&#9999;</div>
         <h3>Custom Tab Names</h3>
         <p>Double-click any tab to rename it. Custom names persist across sessions and restarts. Keep your workspace organized.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#127760;</div>
+        <h3>WebPicker</h3>
+        <p>Connect to Chrome via DevTools Protocol. Hover any element to highlight it, click to copy its outerHTML — paste directly into your terminal.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#127916;</div>
+        <h3>Onboarding Video</h3>
+        <p>First-launch intro video plays automatically in a floating panel. Closes when done, never shown again — zero friction for new users.</p>
       </div>
     </div>
   </div>
@@ -1174,7 +1184,7 @@ footer {
       <div class="install-card">
         <h3>Direct Download</h3>
         <div class="install-cmd" onclick="window.open('https://github.com/LEVOGNE/quickTerminal/releases/latest', '_blank')">
-          <span>Download quickTERMINAL_v1.2.1.zip</span>
+          <span>Download quickTERMINAL_v1.3.0.zip</span>
           <button class="copy-btn" aria-label="Download">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </button>
@@ -1206,7 +1216,7 @@ footer {
     <div class="hero-actions">
       <a href="https://github.com/LEVOGNE/quickTerminal/releases/latest" class="btn-primary">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download v1.2.1
+        Download v1.3.0
       </a>
       <a href="https://github.com/LEVOGNE/quickTerminal" class="btn-secondary" target="_blank">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -1241,12 +1251,12 @@ footer {
 const termLines = [
   { prompt: '~ ', cmd: 'neofetch --minimal', delay: 0 },
   { output: '  macOS 15.2 Sequoia', delay: 400 },
-  { output: '  Terminal: <span class="highlight">quickTERMINAL v1.2.1</span>', delay: 600 },
+  { output: '  Terminal: <span class="highlight">quickTERMINAL v1.3.0</span>', delay: 600 },
   { output: '  Shell: zsh 5.9', delay: 800 },
   { output: '  Resolution: 2560x1600', delay: 1000 },
   { output: '', delay: 1200 },
   { prompt: '~ ', cmd: 'quickterminal --info', delay: 1400 },
-  { output: '  <span class="amber">10,247</span> lines  |  <span class="amber">1</span> file  |  <span class="amber">0</span> deps  |  <span class="amber">4.8 MB</span>', delay: 1800 },
+  { output: '  <span class="amber">13,200</span> lines  |  <span class="amber">1</span> file  |  <span class="amber">0</span> deps  |  <span class="amber">4.8 MB</span>', delay: 1800 },
   { output: '  Parser: 13-state FSM  |  Render: 60 FPS CGContext', delay: 2000 },
   { output: '  Colors: 24-bit TrueColor  |  Graphics: Sixel', delay: 2200 },
   { output: '', delay: 2400 },

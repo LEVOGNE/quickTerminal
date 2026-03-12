@@ -36,7 +36,7 @@ echo "    AppIcon.icns created"
 # ─── Step 2: Compile binary ───
 echo "[2/4] Compiling binary..."
 swiftc -O quickTerminal.swift -o "${APP_NAME}_bin" \
-  -framework Cocoa -framework Carbon \
+  -framework Cocoa -framework Carbon -framework AVKit \
   -Xlinker -sectcreate -Xlinker __FONTS -Xlinker __jbmono -Xlinker _JetBrainsMono-LightItalic-terminal.ttf \
   -Xlinker -sectcreate -Xlinker __FONTS -Xlinker __monocraft -Xlinker _Monocraft-terminal.ttf \
   -Xlinker -sectcreate -Xlinker __DATA -Xlinker __readme -Xlinker README.md \
@@ -64,6 +64,9 @@ rm -f "${BUNDLE}/Contents/MacOS/shell/.zsh_history"
 
 # Icon
 cp AppIcon.icns "${BUNDLE}/Contents/Resources/"
+
+# Onboarding video
+cp quickTERMINAL.mp4 "${BUNDLE}/Contents/Resources/"
 
 # PkgInfo
 echo -n "APPL????" > "${BUNDLE}/Contents/PkgInfo"

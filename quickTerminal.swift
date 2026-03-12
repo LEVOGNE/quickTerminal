@@ -6,6 +6,7 @@ import Carbon
 import Darwin
 import Darwin.POSIX
 import Security
+import AVKit
 
 // MARK: - Version
 
@@ -11038,6 +11039,82 @@ class UpdateChecker {
     }
 }
 
+// MARK: - Onboarding Panel
+
+class OnboardingPanel: NSPanel {
+    private var player: AVPlayer?
+    private var playerView: AVPlayerView!
+    private var endObserver: Any?
+
+    static func showIfNeeded() {
+        guard !UserDefaults.standard.bool(forKey: "onboardingVideoShown") else { return }
+        guard let url = Bundle.main.url(forResource: "quickTERMINAL", withExtension: "mp4") else { return }
+        let panel = OnboardingPanel(url: url)
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    init(url: URL) {
+        let w: CGFloat = 480
+        let h: CGFloat = 300
+        // Center on main screen
+        let screen = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let x = screen.midX - w / 2
+        let y = screen.midY - h / 2
+        super.init(
+            contentRect: NSRect(x: x, y: y, width: w, height: h),
+            styleMask: [.nonactivatingPanel, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        isMovableByWindowBackground = true
+        isReleasedWhenClosed = false
+        level = .floating
+        backgroundColor = .black
+        isOpaque = true
+
+        // Player
+        player = AVPlayer(url: url)
+        playerView = AVPlayerView(frame: NSRect(x: 0, y: 0, width: w, height: h))
+        playerView.player = player
+        playerView.controlsStyle = .none
+        playerView.autoresizingMask = [.width, .height]
+        contentView?.addSubview(playerView)
+
+        // Skip button (top-right)
+        let skipBtn = NSButton(frame: NSRect(x: w - 68, y: h - 28, width: 60, height: 22))
+        skipBtn.title = "✕ Skip"
+        skipBtn.bezelStyle = .inline
+        skipBtn.isBordered = false
+        skipBtn.font = .systemFont(ofSize: 11)
+        skipBtn.contentTintColor = NSColor(calibratedWhite: 0.6, alpha: 1.0)
+        skipBtn.autoresizingMask = [.minXMargin, .minYMargin]
+        skipBtn.target = self
+        skipBtn.action = #selector(dismiss)
+        contentView?.addSubview(skipBtn)
+
+        // Auto-close when video ends
+        endObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: player?.currentItem,
+            queue: .main
+        ) { [weak self] _ in self?.dismiss() }
+
+        player?.play()
+    }
+
+    @objc private func dismiss() {
+        UserDefaults.standard.set(true, forKey: "onboardingVideoShown")
+        player?.pause()
+        if let obs = endObserver { NotificationCenter.default.removeObserver(obs) }
+        close()
+    }
+
+    deinit {
+        if let obs = endObserver { NotificationCenter.default.removeObserver(obs) }
+    }
+}
+
 // MARK: - App Delegate
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
@@ -11422,6 +11499,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         positionWindowUnderTrayIcon()
         window.alphaValue = 0
         window.orderOut(nil)
+
+        // First-launch onboarding video (plays once, never again)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            OnboardingPanel.showIfNeeded()
+        }
     }
 
     func termFrame() -> NSRect {
