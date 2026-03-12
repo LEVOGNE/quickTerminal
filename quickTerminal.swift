@@ -8862,6 +8862,7 @@ class ChromeCDPClient {
     private var wsSession: URLSession?
     private var messageId = 0
     private var pendingCallbacks: [Int: ([String: Any]?) -> Void] = [:]
+    var onDisconnected: (() -> Void)?
 
     /// Prüft ob Chrome mit --remote-debugging-port läuft (2s Timeout)
     func isAvailable(completion: @escaping (Bool) -> Void) {
@@ -9008,8 +9009,9 @@ class ChromeCDPClient {
         webSocketTask?.receive { [weak self] result in
             guard let self = self else { return }
             switch result {
-            case .failure:
-                // Connection closed or errored — stop looping
+            case .failure(let error):
+                print("[CDP] receiveLoop → connection lost: \(error.localizedDescription)")
+                DispatchQueue.main.async { [weak self] in self?.onDisconnected?() }
                 return
             case .success(let msg):
                 if case .string(let text) = msg,
@@ -9361,8 +9363,10 @@ class WebPickerSidebarView: NSView {
     func connect() {
         isConnected = false
         currentTargetId = nil
+        pollTimer?.invalidate(); pollTimer = nil
         tabSearchTimer?.invalidate(); tabSearchTimer = nil
         titlePollTimer?.invalidate(); titlePollTimer = nil
+        pickBtn.title = "  🎯  Element wählen"
         showConnectingState("Verbinde...")
         cdp.isAvailable { [weak self] available in
             guard let self = self else { return }
@@ -9419,6 +9423,16 @@ class WebPickerSidebarView: NSView {
     private func doConnect(to wsURL: String) {
         currentTargetId = URL(string: wsURL)?.lastPathComponent
         tabSearchTimer?.invalidate(); tabSearchTimer = nil
+        cdp.onDisconnected = { [weak self] in
+            guard let self = self, self.isConnected else { return }
+            print("[WebPicker] WebSocket lost — resetting to disconnected")
+            self.isConnected = false
+            self.pollTimer?.invalidate(); self.pollTimer = nil
+            self.titlePollTimer?.invalidate(); self.titlePollTimer = nil
+            self.currentTargetId = nil
+            self.showDisconnectedState()
+            self.setStatusText("Verbindung verloren")
+        }
         cdp.connect(wsURL: wsURL) { [weak self] success in
             guard let self = self else { return }
             if success {
@@ -9436,9 +9450,20 @@ class WebPickerSidebarView: NSView {
     private func refreshTabTitle() {
         guard let tid = currentTargetId else { return }
         cdp.getTabHostname(targetId: tid) { [weak self] hostname in
-            guard let self = self else { return }
-            let navigating = hostname?.isEmpty != false
-            self.showConnectedState(hostname: hostname ?? "", navigating: navigating)
+            guard let self = self, self.isConnected else { return }
+            if let hostname = hostname {
+                // hostname == "" means about:blank (still navigating), non-empty = real site
+                self.showConnectedState(hostname: hostname, navigating: hostname.isEmpty)
+            } else {
+                // nil = tab not found in /json/list — tab was closed externally
+                print("[WebPicker] tab gone from /json/list — disconnecting")
+                self.isConnected = false
+                self.titlePollTimer?.invalidate(); self.titlePollTimer = nil
+                self.currentTargetId = nil
+                self.cdp.disconnect()
+                self.showDisconnectedState()
+                self.setStatusText("Tab wurde geschlossen")
+            }
         }
     }
 
