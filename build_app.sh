@@ -6,7 +6,7 @@ APP_NAME="quickTerminal"
 BUNDLE="${APP_NAME}.app"
 ICON_SRC="icon.png"
 # NOTE: Keep VERSION in sync with kAppVersion in quickTerminal.swift
-VERSION="1.2.1"
+VERSION="1.3.0"
 BUNDLE_ID="com.l3v0.quickterminal"
 
 echo "=== Building ${APP_NAME}.app ==="

@@ -9,7 +9,7 @@ import Security
 
 // MARK: - Version
 
-let kAppVersion = "1.2.1"
+let kAppVersion = "1.3.0"
 
 func isNewerVersion(remote: String, local: String) -> Bool {
     let strip: (String) -> String = { $0.hasPrefix("v") ? String($0.dropFirst()) : $0 }
@@ -7907,8 +7907,7 @@ class GitPanelView: NSView {
         commitCard.layer?.cornerRadius = 10
         commitCard.translatesAutoresizingMaskIntoConstraints = false
 
-        let label = makeLabel("Was hast du geändert?", size: 10, weight: .semibold,
-                              color: NSColor(calibratedWhite: 0.38, alpha: 1.0))
+        let label = NSTextField(labelWithString: "")
         label.attributedStringValue = NSAttributedString(string: "WAS HAST DU GEÄNDERT?", attributes: [
             .font: NSFont.systemFont(ofSize: 9.5, weight: .semibold),
             .foregroundColor: NSColor(calibratedWhite: 0.35, alpha: 1.0),
@@ -8383,7 +8382,7 @@ class GitPanelView: NSView {
     // MARK: - Files Stack
 
     private func rebuildFilesStack() {
-        let key = fileEntries.map { $0.path }.joined()
+        let key = fileEntries.map { $0.path }.joined(separator: "\n")
         guard key != lastFilesKey else { return }
         lastFilesKey = key
         expandedDiffFile = nil
@@ -8705,7 +8704,11 @@ class GitPanelView: NSView {
             guard let self = self else { return }
             if success, let cloneURL = cloneURLOrError {
                 DispatchQueue.global(qos: .userInitiated).async {
-                    _ = self.runGitAction(["remote", "add", "origin", cloneURL], cwd: cwd)
+                    let remoteAdd = self.runGitAction(["remote", "add", "origin", cloneURL], cwd: cwd)
+                    if !remoteAdd.success {
+                        // remote may already exist — try updating it instead
+                        _ = self.runGitAction(["remote", "set-url", "origin", cloneURL], cwd: cwd)
+                    }
                     let push = self.runGitAction(["push", "-u", "origin", branch], cwd: cwd)
                     DispatchQueue.main.async {
                         self.repoCreateBtn.isEnabled = true
