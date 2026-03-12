@@ -9415,19 +9415,25 @@ class WebPickerSidebarView: NSView {
     private let cdp = ChromeCDPClient()
     private var pollTimer: Timer?
     private var tabSearchTimer: Timer?
+    private var titlePollTimer: Timer?
     private var isConnected = false
+    private var currentTargetId: String?
     var onClose: (() -> Void)?
 
-    // UI
-    private let titleLabel  = NSTextField(labelWithString: "◈  WebPicker")
-    private let closeBtn    = NSButton()
-    private let titleSep    = NSView()
-    private let statusDot   = NSView()
-    private let statusLabel = NSTextField(labelWithString: "Nicht verbunden")
-    private let pickBtn     = NSButton()
-    private let relaunchBtn = NSButton()
-    private let previewSep  = NSView()
-    private let previewLabel = NSTextField(labelWithString: "")
+    // Teal accent
+    private static let teal = NSColor(calibratedRed: 0.24, green: 0.79, blue: 0.63, alpha: 1.0)
+
+    // UI elements
+    private let titleLabel    = NSTextField(labelWithString: "◈  WebPicker")
+    private let closeBtn      = NSButton()
+    private let titleSep      = NSView()
+    private let statusDot     = NSView()
+    private let statusLabel   = NSTextField(labelWithString: "Nicht verbunden")
+    private let pickBtn       = NSButton()
+    private let connectBtn    = NSButton()
+    private let disconnectBtn = NSButton()
+    private let previewSep    = NSView()
+    private let previewLabel  = NSTextField(labelWithString: "")
     private let feedbackLabel = NSTextField(labelWithString: "")
 
     override init(frame: NSRect) {
@@ -9438,18 +9444,10 @@ class WebPickerSidebarView: NSView {
     }
     required init?(coder: NSCoder) { fatalError() }
 
-    private func makeLabel(_ s: String, size: CGFloat, weight: NSFont.Weight = .regular,
-                           color: NSColor = .secondaryLabelColor) -> NSTextField {
-        let f = NSTextField(labelWithString: s)
-        f.font = NSFont.systemFont(ofSize: size, weight: weight)
-        f.textColor = color; f.isEditable = false; f.isBordered = false; f.drawsBackground = false
-        return f
-    }
-
     private func setupUI() {
-        // Title
+        // ── Title bar ──
         titleLabel.font = NSFont.systemFont(ofSize: 10.5, weight: .semibold)
-        titleLabel.textColor = NSColor(calibratedWhite: 0.75, alpha: 1)
+        titleLabel.textColor = Self.teal
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(titleLabel)
 
@@ -9461,52 +9459,72 @@ class WebPickerSidebarView: NSView {
         closeBtn.translatesAutoresizingMaskIntoConstraints = false
         addSubview(closeBtn)
 
+        // Teal separator line under title
         titleSep.wantsLayer = true
-        titleSep.layer?.backgroundColor = NSColor(calibratedWhite: 1, alpha: 0.07).cgColor
+        titleSep.layer?.backgroundColor = Self.teal.withAlphaComponent(0.35).cgColor
         titleSep.translatesAutoresizingMaskIntoConstraints = false
         addSubview(titleSep)
 
-        // Status
+        // ── Status row ──
         statusDot.wantsLayer = true
         statusDot.layer?.cornerRadius = 4
         statusDot.layer?.backgroundColor = NSColor.systemGray.cgColor
         statusDot.translatesAutoresizingMaskIntoConstraints = false
         addSubview(statusDot)
 
-        statusLabel.font = NSFont.systemFont(ofSize: 10)
-        statusLabel.textColor = .secondaryLabelColor
+        statusLabel.font = NSFont.monospacedSystemFont(ofSize: 9.5, weight: .regular)
+        statusLabel.textColor = NSColor(calibratedWhite: 0.55, alpha: 1)
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(statusLabel)
 
-        // Buttons
-        pickBtn.title = "🎯  Element wählen"
-        pickBtn.bezelStyle = .rounded; pickBtn.isEnabled = false
+        // ── Pick button (main action, teal styled) ──
+        pickBtn.title = "  🎯  Element wählen"
+        pickBtn.bezelStyle = .rounded
+        pickBtn.isEnabled = false
+        pickBtn.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        pickBtn.wantsLayer = true
         pickBtn.target = self; pickBtn.action = #selector(startPicking)
-        pickBtn.font = NSFont.systemFont(ofSize: 11)
         pickBtn.translatesAutoresizingMaskIntoConstraints = false
         addSubview(pickBtn)
+        styleTealButton(pickBtn, enabled: false)
 
-        relaunchBtn.title = "⊕  Debug-Chrome öffnen"
-        relaunchBtn.bezelStyle = .rounded; relaunchBtn.isHidden = true
-        relaunchBtn.target = self; relaunchBtn.action = #selector(doRelaunch)
-        relaunchBtn.font = NSFont.systemFont(ofSize: 10)
-        relaunchBtn.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(relaunchBtn)
+        // ── Connect button ──
+        connectBtn.title = "  ⊕  Connect"
+        connectBtn.bezelStyle = .rounded
+        connectBtn.font = NSFont.systemFont(ofSize: 10.5, weight: .medium)
+        connectBtn.wantsLayer = true
+        connectBtn.target = self; connectBtn.action = #selector(doConnectBtn)
+        connectBtn.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(connectBtn)
+        styleTealButton(connectBtn, enabled: true)
 
-        // Preview
+        // ── Disconnect button ──
+        disconnectBtn.title = "⏏  Disconnect"
+        disconnectBtn.bezelStyle = .inline
+        disconnectBtn.isBordered = false
+        disconnectBtn.font = NSFont.systemFont(ofSize: 9.5, weight: .regular)
+        disconnectBtn.contentTintColor = NSColor(calibratedWhite: 0.4, alpha: 1)
+        disconnectBtn.isHidden = true
+        disconnectBtn.target = self; disconnectBtn.action = #selector(doDisconnect)
+        disconnectBtn.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(disconnectBtn)
+
+        // ── Preview area ──
         previewSep.wantsLayer = true
         previewSep.layer?.backgroundColor = NSColor(calibratedWhite: 1, alpha: 0.06).cgColor
         previewSep.translatesAutoresizingMaskIntoConstraints = false
         addSubview(previewSep)
 
-        previewLabel.font = NSFont.monospacedSystemFont(ofSize: 9, weight: .regular)
-        previewLabel.textColor = NSColor(calibratedWhite: 0.45, alpha: 1)
-        previewLabel.maximumNumberOfLines = 4; previewLabel.lineBreakMode = .byTruncatingTail
+        previewLabel.font = NSFont.monospacedSystemFont(ofSize: 8.5, weight: .regular)
+        previewLabel.textColor = NSColor(calibratedWhite: 0.4, alpha: 1)
+        previewLabel.maximumNumberOfLines = 4
+        previewLabel.lineBreakMode = .byTruncatingTail
         previewLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(previewLabel)
 
-        feedbackLabel.font = NSFont.systemFont(ofSize: 10.5, weight: .medium)
-        feedbackLabel.textColor = .systemGreen; feedbackLabel.isHidden = true
+        feedbackLabel.font = NSFont.systemFont(ofSize: 10, weight: .medium)
+        feedbackLabel.textColor = Self.teal
+        feedbackLabel.isHidden = true
         feedbackLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(feedbackLabel)
 
@@ -9524,46 +9542,118 @@ class WebPickerSidebarView: NSView {
             // Status
             statusDot.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
             statusDot.topAnchor.constraint(equalTo: titleSep.bottomAnchor, constant: 10),
-            statusDot.widthAnchor.constraint(equalToConstant: 7),
-            statusDot.heightAnchor.constraint(equalToConstant: 7),
+            statusDot.widthAnchor.constraint(equalToConstant: 8),
+            statusDot.heightAnchor.constraint(equalToConstant: 8),
             statusLabel.leadingAnchor.constraint(equalTo: statusDot.trailingAnchor, constant: 6),
             statusLabel.centerYAnchor.constraint(equalTo: statusDot.centerYAnchor),
             statusLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-            // Buttons
+            // Pick button
             pickBtn.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
             pickBtn.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
-            pickBtn.topAnchor.constraint(equalTo: statusDot.bottomAnchor, constant: 10),
-            relaunchBtn.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
-            relaunchBtn.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
-            relaunchBtn.topAnchor.constraint(equalTo: pickBtn.bottomAnchor, constant: 5),
-            // Preview
+            pickBtn.topAnchor.constraint(equalTo: statusDot.bottomAnchor, constant: 9),
+            // Connect button (same position as pickBtn — only one visible at a time)
+            connectBtn.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            connectBtn.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            connectBtn.topAnchor.constraint(equalTo: statusDot.bottomAnchor, constant: 9),
+            // Disconnect button (small, below pick)
+            disconnectBtn.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            disconnectBtn.topAnchor.constraint(equalTo: pickBtn.bottomAnchor, constant: 4),
+            // Preview sep
             previewSep.leadingAnchor.constraint(equalTo: leadingAnchor),
             previewSep.trailingAnchor.constraint(equalTo: trailingAnchor),
-            previewSep.topAnchor.constraint(equalTo: relaunchBtn.bottomAnchor, constant: 8),
+            previewSep.topAnchor.constraint(equalTo: disconnectBtn.bottomAnchor, constant: 7),
             previewSep.heightAnchor.constraint(equalToConstant: 1),
+            // Preview
             previewLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
             previewLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
-            previewLabel.topAnchor.constraint(equalTo: previewSep.bottomAnchor, constant: 7),
+            previewLabel.topAnchor.constraint(equalTo: previewSep.bottomAnchor, constant: 6),
             feedbackLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
-            feedbackLabel.topAnchor.constraint(equalTo: previewLabel.bottomAnchor, constant: 6),
+            feedbackLabel.topAnchor.constraint(equalTo: previewLabel.bottomAnchor, constant: 4),
         ])
+
+        showDisconnectedState()
+    }
+
+    // MARK: - Button styling
+
+    private func styleTealButton(_ btn: NSButton, enabled: Bool) {
+        let t = Self.teal
+        btn.layer?.cornerRadius = 5
+        btn.layer?.backgroundColor = t.withAlphaComponent(enabled ? 0.15 : 0.06).cgColor
+        btn.layer?.borderColor = t.withAlphaComponent(enabled ? 0.4 : 0.15).cgColor
+        btn.layer?.borderWidth = 0.5
+        btn.contentTintColor = t.withAlphaComponent(enabled ? 1.0 : 0.4)
+        btn.alphaValue = enabled ? 1.0 : 0.5
+    }
+
+    // MARK: - State transitions
+
+    private func showDisconnectedState() {
+        setStatusDot(.systemGray)
+        setStatusText("Nicht verbunden")
+        pickBtn.isHidden = true
+        disconnectBtn.isHidden = true
+        connectBtn.isHidden = false
+        connectBtn.isEnabled = true
+        styleTealButton(connectBtn, enabled: true)
+        previewSep.isHidden = true
+        previewLabel.stringValue = ""
+        feedbackLabel.isHidden = true
+    }
+
+    private func showConnectingState(_ msg: String) {
+        setStatusDot(.systemOrange)
+        setStatusText(msg)
+        pickBtn.isHidden = true
+        disconnectBtn.isHidden = true
+        connectBtn.isHidden = false
+        connectBtn.isEnabled = false
+        styleTealButton(connectBtn, enabled: false)
+        previewSep.isHidden = true
+    }
+
+    private func showConnectedState(hostname: String, navigating: Bool) {
+        if navigating {
+            setStatusDot(.systemOrange)
+            setStatusText("Navigiere zur Webseite")
+        } else {
+            setStatusDot(Self.teal)
+            setStatusText(hostname.isEmpty ? "Verbunden" : hostname)
+        }
+        connectBtn.isHidden = true
+        pickBtn.isHidden = false
+        pickBtn.isEnabled = !navigating
+        styleTealButton(pickBtn, enabled: !navigating)
+        disconnectBtn.isHidden = false
+        previewSep.isHidden = false
+    }
+
+    private func setStatusDot(_ color: NSColor) {
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.2
+            statusDot.animator().layer?.backgroundColor = color.cgColor
+        }
+    }
+
+    private func setStatusText(_ text: String) {
+        statusLabel.stringValue = text
     }
 
     // MARK: - Connection
 
     func connect() {
         isConnected = false
+        currentTargetId = nil
         tabSearchTimer?.invalidate(); tabSearchTimer = nil
-        setStatus("Verbinde...", color: .systemOrange)
-        pickBtn.isEnabled = false
-        relaunchBtn.isHidden = true
+        titlePollTimer?.invalidate(); titlePollTimer = nil
+        showConnectingState("Verbinde...")
         cdp.isAvailable { [weak self] available in
             guard let self = self else { return }
             if available {
                 self.connectToTab()
             } else {
                 self.cdp.launchChrome(onStatus: { [weak self] msg in
-                    self?.setStatus(msg, color: .systemOrange)
+                    self?.showConnectingState(msg)
                 }) { [weak self] in self?.connectToTab() }
             }
         }
@@ -9572,9 +9662,21 @@ class WebPickerSidebarView: NSView {
     func disconnect() {
         pollTimer?.invalidate(); pollTimer = nil
         tabSearchTimer?.invalidate(); tabSearchTimer = nil
+        titlePollTimer?.invalidate(); titlePollTimer = nil
         isConnected = false
+        pickBtn.title = "  🎯  Element wählen"
         let cleanup = "window.__qtPickerActive = false; document.querySelectorAll('*').forEach(function(el){el.style.outline='';el.style.outlineOffset='';}); void 0;"
-        cdp.evaluate(cleanup) { [weak self] _ in self?.cdp.disconnect() }
+        if let tid = currentTargetId {
+            cdp.evaluate(cleanup) { [weak self] _ in
+                self?.cdp.closeTab(targetId: tid) {
+                    self?.cdp.disconnect()
+                }
+            }
+        } else {
+            cdp.evaluate(cleanup) { [weak self] _ in self?.cdp.disconnect() }
+        }
+        currentTargetId = nil
+        showDisconnectedState()
     }
 
     private func connectToTab() {
@@ -9583,17 +9685,14 @@ class WebPickerSidebarView: NSView {
             if let wsURL = wsURL {
                 self.doConnect(to: wsURL)
             } else {
-                // No real web tab found — create a blank one automatically
-                self.setStatus("Öffne neuen Tab...", color: .systemOrange)
+                self.showConnectingState("Öffne neuen Tab...")
                 self.cdp.createBlankTab { [weak self] newWS in
                     guard let self = self else { return }
                     if let newWS = newWS {
-                        // Connected to about:blank — user can now navigate to any site
-                        self.setStatus("Navigiere zur Webseite", color: .systemOrange)
                         self.doConnect(to: newWS)
                     } else {
-                        self.setStatus("Kein Debug-Chrome — Tab öffnen", color: .systemRed)
-                        self.relaunchBtn.isHidden = false
+                        self.showDisconnectedState()
+                        self.setStatusText("Chrome nicht erreichbar")
                     }
                 }
             }
@@ -9601,17 +9700,30 @@ class WebPickerSidebarView: NSView {
     }
 
     private func doConnect(to wsURL: String) {
+        currentTargetId = wsURL.components(separatedBy: "/").last
         tabSearchTimer?.invalidate(); tabSearchTimer = nil
-        relaunchBtn.isHidden = true
         cdp.connect(wsURL: wsURL) { [weak self] success in
             guard let self = self else { return }
             if success {
                 self.isConnected = true
-                self.setStatus("Chrome verbunden", color: .systemGreen)
-                self.pickBtn.isEnabled = true
+                self.refreshTabTitle()
             } else {
-                self.setStatus("Verbindung fehlgeschlagen", color: .systemRed)
+                self.showDisconnectedState()
+                self.setStatusText("Verbindung fehlgeschlagen")
                 self.scheduleTabSearch()
+            }
+        }
+    }
+
+    private func refreshTabTitle() {
+        guard let tid = currentTargetId else { return }
+        cdp.getTabHostname(targetId: tid) { [weak self] hostname in
+            guard let self = self else { return }
+            let navigating = hostname == nil || hostname!.isEmpty
+            self.showConnectedState(hostname: hostname ?? "", navigating: navigating)
+            self.titlePollTimer?.invalidate()
+            self.titlePollTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+                self?.refreshTabTitle()
             }
         }
     }
@@ -9624,21 +9736,17 @@ class WebPickerSidebarView: NSView {
         }
     }
 
-    @objc private func doRelaunch() {
-        connect()
-    }
+    // MARK: - Button actions
 
-    private func setStatus(_ text: String, color: NSColor) {
-        statusLabel.stringValue = text
-        statusDot.layer?.backgroundColor = color.cgColor
-    }
-
+    @objc private func doConnectBtn() { connect() }
+    @objc private func doDisconnect() { disconnect() }
     @objc private func doClose() { onClose?() }
 
     // MARK: - Picker
 
     @objc private func startPicking() {
         pickBtn.title = "⏳  Warte auf Klick..."; pickBtn.isEnabled = false
+        styleTealButton(pickBtn, enabled: false)
         previewLabel.stringValue = ""; feedbackLabel.isHidden = true
         cdp.evaluate("window.__qtPickedHTML = null; window.__qtPickerActive = false; void 0;") { _ in }
         let pickerJS = """
@@ -9648,7 +9756,7 @@ class WebPickerSidebarView: NSView {
           var last = null;
           function over(e) {
             if (last && last !== e.target) { last.style.outline=''; last.style.outlineOffset=''; }
-            last = e.target; last.style.outline='2px solid #4A90D9'; last.style.outlineOffset='-2px';
+            last = e.target; last.style.outline='2px solid #3DC9A0'; last.style.outlineOffset='-2px';
           }
           function out(e) { if (e.target===last){e.target.style.outline='';e.target.style.outlineOffset='';} }
           function pick(e) {
@@ -9680,7 +9788,8 @@ class WebPickerSidebarView: NSView {
     }
 
     private func onHTMLPicked(_ html: String) {
-        pickBtn.title = "🎯  Element wählen"; pickBtn.isEnabled = true
+        pickBtn.title = "  🎯  Element wählen"; pickBtn.isEnabled = true
+        styleTealButton(pickBtn, enabled: true)
         previewLabel.stringValue = String(html.prefix(300))
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(html, forType: .string)
@@ -9691,13 +9800,18 @@ class WebPickerSidebarView: NSView {
             vDown?.flags = .maskCommand; vUp?.flags = .maskCommand
             vDown?.post(tap: .cghidEventTap); vUp?.post(tap: .cghidEventTap)
         }
-        feedbackLabel.stringValue = "✓ Eingefügt!"; feedbackLabel.isHidden = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+        feedbackLabel.stringValue = "✓ Kopiert!"; feedbackLabel.isHidden = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
             self?.feedbackLabel.isHidden = true
         }
     }
 
-    deinit { pollTimer?.invalidate(); tabSearchTimer?.invalidate(); cdp.disconnect() }
+    deinit {
+        pollTimer?.invalidate()
+        tabSearchTimer?.invalidate()
+        titlePollTimer?.invalidate()
+        cdp.disconnect()
+    }
 }
 
 // MARK: - Split Container
