@@ -4080,7 +4080,7 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
     private var splitVBtn: SplitIconButton!
     private var splitHBtn: SplitIconButton!
     private var gitBtn: HoverButton!
-    private var htmlBtn: HoverButton!
+    private var webPickerBtn: HoverButton!
     private let sep = NSView()
     private var lastTitles: [String] = []
     private var lastActiveIndex: Int = -1
@@ -4148,15 +4148,15 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
         addSubview(gitBtn)
 
         // WebPicker button
-        htmlBtn = HoverButton(title: "</>", fontSize: 9, weight: .bold,
+        webPickerBtn = HoverButton(title: "</>", fontSize: 9, weight: .bold,
             normalColor: NSColor(calibratedWhite: 0.5, alpha: 1.0),
             hoverColor: NSColor(calibratedRed: 0.35, green: 0.85, blue: 0.55, alpha: 1.0),
             hoverBg: NSColor(calibratedRed: 0.35, green: 0.85, blue: 0.55, alpha: 0.12),
             pressBg: NSColor(calibratedRed: 0.35, green: 0.85, blue: 0.55, alpha: 0.25),
             cornerRadius: 4)
-        htmlBtn.onClick = { [weak self] in self?.onWebPickerToggle?() }
-        htmlBtn.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(htmlBtn)
+        webPickerBtn.onClick = { [weak self] in self?.onWebPickerToggle?() }
+        webPickerBtn.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(webPickerBtn)
 
         // Separator line at bottom
         sep.wantsLayer = true
@@ -4181,15 +4181,15 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
             splitHBtn.widthAnchor.constraint(equalToConstant: 20),
             splitHBtn.heightAnchor.constraint(equalToConstant: 20),
 
-            gitBtn.trailingAnchor.constraint(equalTo: htmlBtn.leadingAnchor, constant: -4),
+            gitBtn.trailingAnchor.constraint(equalTo: webPickerBtn.leadingAnchor, constant: -4),
             gitBtn.centerYAnchor.constraint(equalTo: centerYAnchor),
             gitBtn.widthAnchor.constraint(equalToConstant: 30),
             gitBtn.heightAnchor.constraint(equalToConstant: 20),
 
-            htmlBtn.trailingAnchor.constraint(equalTo: addBtn.leadingAnchor, constant: -4),
-            htmlBtn.centerYAnchor.constraint(equalTo: centerYAnchor),
-            htmlBtn.widthAnchor.constraint(equalToConstant: 30),
-            htmlBtn.heightAnchor.constraint(equalToConstant: 20),
+            webPickerBtn.trailingAnchor.constraint(equalTo: addBtn.leadingAnchor, constant: -4),
+            webPickerBtn.centerYAnchor.constraint(equalTo: centerYAnchor),
+            webPickerBtn.widthAnchor.constraint(equalToConstant: 30),
+            webPickerBtn.heightAnchor.constraint(equalToConstant: 20),
 
             addBtn.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
             addBtn.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -4307,11 +4307,11 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
 
     func setWebPickerActive(_ active: Bool) {
         if active {
-            htmlBtn.label.textColor = NSColor(calibratedRed: 0.35, green: 0.85, blue: 0.55, alpha: 1.0)
-            htmlBtn.layer?.backgroundColor = NSColor(calibratedRed: 0.35, green: 0.85, blue: 0.55, alpha: 0.15).cgColor
+            webPickerBtn.label.textColor = NSColor(calibratedRed: 0.35, green: 0.85, blue: 0.55, alpha: 1.0)
+            webPickerBtn.layer?.backgroundColor = NSColor(calibratedRed: 0.35, green: 0.85, blue: 0.55, alpha: 0.15).cgColor
         } else {
-            htmlBtn.label.textColor = NSColor(calibratedWhite: 0.5, alpha: 1.0)
-            htmlBtn.layer?.backgroundColor = NSColor.clear.cgColor
+            webPickerBtn.label.textColor = NSColor(calibratedWhite: 0.5, alpha: 1.0)
+            webPickerBtn.layer?.backgroundColor = NSColor.clear.cgColor
         }
     }
 
@@ -9700,13 +9700,14 @@ class WebPickerSidebarView: NSView {
     }
 
     private func doConnect(to wsURL: String) {
-        currentTargetId = wsURL.components(separatedBy: "/").last
+        currentTargetId = URL(string: wsURL)?.lastPathComponent
         tabSearchTimer?.invalidate(); tabSearchTimer = nil
         cdp.connect(wsURL: wsURL) { [weak self] success in
             guard let self = self else { return }
             if success {
                 self.isConnected = true
                 self.refreshTabTitle()
+                self.startTitlePolling()
             } else {
                 self.showDisconnectedState()
                 self.setStatusText("Verbindung fehlgeschlagen")
@@ -9721,10 +9722,13 @@ class WebPickerSidebarView: NSView {
             guard let self = self else { return }
             let navigating = hostname?.isEmpty != false
             self.showConnectedState(hostname: hostname ?? "", navigating: navigating)
-            self.titlePollTimer?.invalidate()
-            self.titlePollTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
-                self?.refreshTabTitle()
-            }
+        }
+    }
+
+    private func startTitlePolling() {
+        titlePollTimer?.invalidate()
+        titlePollTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+            self?.refreshTabTitle()
         }
     }
 
