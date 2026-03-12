@@ -8873,7 +8873,6 @@ class ChromeCDPClient {
         URLSession.shared.dataTask(with: req) { _, response, error in
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
             let ok = code == 200
-            print("[CDP] isAvailable \(urlStr) → HTTP \(code)\(error != nil ? " error=\(error!.localizedDescription)" : "")")
             DispatchQueue.main.async { completion(ok) }
         }.resume()
     }
@@ -8892,8 +8891,7 @@ class ChromeCDPClient {
             kill.arguments = [name]
             kill.standardOutput = FileHandle.nullDevice
             kill.standardError  = FileHandle.nullDevice
-            let r = (try? kill.run()) != nil
-            print("[CDP] killall \"\(name)\" → launched=\(r)")
+            _ = try? kill.run()
         }
         onStatus?("Chrome wird beendet...")
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
@@ -8906,14 +8904,10 @@ class ChromeCDPClient {
     /// Pollt isAvailable bis CDP antwortet oder Versuche erschöpft
     private func pollUntilAvailable(attempts: Int, interval: TimeInterval,
                                      onStatus: ((String) -> Void)?, completion: @escaping () -> Void) {
-        if attempts <= 0 {
-            print("[CDP] pollUntilAvailable TIMEOUT — CDP never responded")
-            completion(); return
-        }
+        if attempts <= 0 { completion(); return }
         isAvailable { [weak self] available in
             guard let self = self else { return }
             if available {
-                print("[CDP] pollUntilAvailable → CDP ready!")
                 completion()
             } else {
                 let dots = String(repeating: ".", count: 4 - (attempts % 4))
@@ -8936,11 +8930,7 @@ class ChromeCDPClient {
             "/Applications/Chromium.app",
             "/Applications/Google Chrome Canary.app",
         ]
-        guard let app = candidates.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
-            print("[CDP] openChrome → no Chrome app found!")
-            return
-        }
-        print("[CDP] openChrome → open -na \(app) --user-data-dir=\(tmpDir) --remote-debugging-port=\(Self.debugPort)")
+        guard let app = candidates.first(where: { FileManager.default.fileExists(atPath: $0) }) else { return }
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         proc.arguments = ["-na", app, "--args",
@@ -8951,8 +8941,7 @@ class ChromeCDPClient {
                           "--disable-session-restore"]
         proc.standardOutput = FileHandle.nullDevice
         proc.standardError  = FileHandle.nullDevice
-        do { try proc.run(); print("[CDP] openChrome → launched") }
-        catch { print("[CDP] openChrome → launch failed: \(error)") }
+        try? proc.run()
     }
 
     /// Gibt die WebSocket-URL des ersten aktiven Page-Tabs zurück
@@ -8961,31 +8950,21 @@ class ChromeCDPClient {
         guard let url = URL(string: urlStr) else { completion(nil); return }
         var req = URLRequest(url: url)
         req.timeoutInterval = 3.0
-        URLSession.shared.dataTask(with: req) { data, response, error in
-            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-            print("[CDP] getActiveTabWS \(urlStr) → HTTP \(code)\(error != nil ? " error=\(error!.localizedDescription)" : "")")
-            if let data = data, let raw = String(data: data, encoding: .utf8) {
-                print("[CDP] getActiveTabWS raw: \(raw.prefix(400))")
-            }
+        URLSession.shared.dataTask(with: req) { data, _, _ in
             guard let data = data,
                   let tabs = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-                print("[CDP] getActiveTabWS → JSON parse failed")
                 DispatchQueue.main.async { completion(nil) }
                 return
             }
-            print("[CDP] getActiveTabWS → \(tabs.count) tabs, types: \(tabs.compactMap { $0["type"] as? String })")
             guard let tab = tabs.first(where: {
                 guard ($0["type"] as? String) == "page",
                       let tabURL = $0["url"] as? String else { return false }
                 // Skip Chrome-internal pages — JS injection doesn't work there
                 return tabURL.hasPrefix("http://") || tabURL.hasPrefix("https://") || tabURL == "about:blank"
             }), let wsURL = tab["webSocketDebuggerUrl"] as? String else {
-                print("[CDP] getActiveTabWS → no injectable 'page' tab found")
                 DispatchQueue.main.async { completion(nil) }
                 return
             }
-            let tabTitle = tab["title"] as? String ?? ""
-            print("[CDP] getActiveTabWS → wsURL=\(wsURL) title=\(tabTitle)")
             DispatchQueue.main.async { completion(wsURL) }
         }.resume()
     }
@@ -8994,23 +8973,18 @@ class ChromeCDPClient {
     func connect(wsURL: String, completion: @escaping (Bool) -> Void) {
         disconnect()
         guard let url = URL(string: wsURL) else { completion(false); return }
-        print("[CDP] connect → WebSocket \(wsURL)")
         wsSession = URLSession(configuration: .default)
         webSocketTask = wsSession?.webSocketTask(with: url)
         webSocketTask?.resume()
         receiveLoop()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            print("[CDP] connect → assumed connected")
-            completion(true)
-        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { completion(true) }
     }
 
     private func receiveLoop() {
         webSocketTask?.receive { [weak self] result in
             guard let self = self else { return }
             switch result {
-            case .failure(let error):
-                print("[CDP] receiveLoop → connection lost: \(error.localizedDescription)")
+            case .failure:
                 DispatchQueue.main.async { [weak self] in self?.onDisconnected?() }
                 return
             case .success(let msg):
@@ -9074,15 +9048,12 @@ class ChromeCDPClient {
         var req = URLRequest(url: url)
         req.httpMethod = "PUT"
         req.timeoutInterval = 3.0
-        URLSession.shared.dataTask(with: req) { data, resp, _ in
-            let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
-            print("[CDP] createBlankTab /json/new → HTTP \(code)")
+        URLSession.shared.dataTask(with: req) { data, _, _ in
             guard let data = data,
                   let tab = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let wsURL = tab["webSocketDebuggerUrl"] as? String else {
                 DispatchQueue.main.async { completion(nil) }; return
             }
-            print("[CDP] createBlankTab → wsURL=\(wsURL)")
             DispatchQueue.main.async { completion(wsURL) }
         }.resume()
     }
@@ -9094,9 +9065,7 @@ class ChromeCDPClient {
         }
         var req = URLRequest(url: url)
         req.timeoutInterval = 3.0
-        URLSession.shared.dataTask(with: req) { _, resp, _ in
-            let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
-            print("[CDP] closeTab /json/close/\(targetId) → HTTP \(code)")
+        URLSession.shared.dataTask(with: req) { _, _, _ in
             DispatchQueue.main.async { completion() }
         }.resume()
     }
@@ -9425,7 +9394,6 @@ class WebPickerSidebarView: NSView {
     /// Does NOT send cleanup JS or close the tab — connection is already gone.
     private func handleUnexpectedDisconnect(message: String) {
         guard isConnected else { return }
-        print("[WebPicker] \(message)")
         isConnected = false
         pollTimer?.invalidate(); pollTimer = nil
         titlePollTimer?.invalidate(); titlePollTimer = nil
