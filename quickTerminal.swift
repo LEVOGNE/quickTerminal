@@ -6481,7 +6481,7 @@ class SettingsOverlay: NSView {
         lbl.translatesAutoresizingMaskIntoConstraints = false
         row.addSubview(lbl)
 
-        let statusLbl = NSTextField(labelWithString: hasToken ? "Verbunden" : "Kein Claude Code Token")
+        let statusLbl = NSTextField(labelWithString: hasToken ? "Connected" : "No Claude Code Token")
         statusLbl.font = NSFont.monospacedSystemFont(ofSize: 10, weight: .regular)
         statusLbl.textColor = hasToken
             ? NSColor(calibratedRed: 0.3, green: 0.75, blue: 0.4, alpha: 1.0)
@@ -7341,16 +7341,16 @@ class AIUsagePopover: NSView {
             let msg: String
             let msgColor: NSColor
             if statusCode == 429 {
-                msg = "API gedrosselt (429) — bitte warten"
+                msg = "API rate limited (429) — please wait"
                 msgColor = NSColor(calibratedRed: 0.9, green: 0.6, blue: 0.2, alpha: 1)
             } else if statusCode == 401 || statusCode == 403 {
-                msg = "Token ungültig — bitte neu anmelden"
+                msg = "Invalid token — please sign in again"
                 msgColor = NSColor(calibratedRed: 0.85, green: 0.35, blue: 0.35, alpha: 1)
             } else if statusCode == 0 {
-                msg = "Warte auf erste Antwort..."
+                msg = "Waiting for first response..."
                 msgColor = NSColor(calibratedWhite: 0.5, alpha: 1)
             } else {
-                msg = "Keine Daten (HTTP \(statusCode))"
+                msg = "No data (HTTP \(statusCode))"
                 msgColor = NSColor(calibratedWhite: 0.5, alpha: 1)
             }
             let noData = makeLabel(msg, size: 10, color: msgColor)
@@ -7936,11 +7936,11 @@ class GitPanelView: NSView {
         noRepoCard.layer?.cornerRadius = 10
         noRepoCard.translatesAutoresizingMaskIntoConstraints = false
 
-        let title = makeLabel("Noch kein Projekt-Tracking", size: 12, weight: .medium,
+        let title = makeLabel("No project tracking yet", size: 12, weight: .medium,
                               color: NSColor(calibratedWhite: 0.6, alpha: 1.0))
-        let sub = makeLabel("Klicke auf den Button um das Tracking für diesen Ordner zu starten.", size: 10.5, weight: .regular,
+        let sub = makeLabel("Click the button to start tracking this folder.", size: 10.5, weight: .regular,
                             color: NSColor(calibratedWhite: 0.4, alpha: 1.0))
-        let initBtn = makeBtn("Mit Tracking starten", color: NSColor(calibratedRed: 0.45, green: 0.85, blue: 0.55, alpha: 1.0),
+        let initBtn = makeBtn("Start Tracking", color: NSColor(calibratedRed: 0.45, green: 0.85, blue: 0.55, alpha: 1.0),
                               target: self, action: #selector(initRepoClicked))
 
         _ = addToCard(noRepoCard, views: [title, sub, initBtn], padding: 14, spacing: 8)
@@ -7960,7 +7960,7 @@ class GitPanelView: NSView {
 
         filesHeaderLabel.font = NSFont.systemFont(ofSize: 10, weight: .semibold)
         filesHeaderLabel.textColor = NSColor(calibratedWhite: 0.35, alpha: 1.0)
-        filesHeaderLabel.attributedStringValue = NSAttributedString(string: "GEÄNDERTE DATEIEN", attributes: [
+        filesHeaderLabel.attributedStringValue = NSAttributedString(string: "CHANGED FILES", attributes: [
             .font: NSFont.systemFont(ofSize: 9.5, weight: .semibold),
             .foregroundColor: NSColor(calibratedWhite: 0.35, alpha: 1.0),
             .kern: 1.5
@@ -8016,7 +8016,7 @@ class GitPanelView: NSView {
         commitCard.translatesAutoresizingMaskIntoConstraints = false
 
         let label = NSTextField(labelWithString: "")
-        label.attributedStringValue = NSAttributedString(string: "WAS HAST DU GEÄNDERT?", attributes: [
+        label.attributedStringValue = NSAttributedString(string: "WHAT DID YOU CHANGE?", attributes: [
             .font: NSFont.systemFont(ofSize: 9.5, weight: .semibold),
             .foregroundColor: NSColor(calibratedWhite: 0.35, alpha: 1.0),
             .kern: 1.5
@@ -8086,7 +8086,7 @@ class GitPanelView: NSView {
         githubCard.translatesAutoresizingMaskIntoConstraints = false
 
         // === AUTH STACK (not logged in) ===
-        let authTitle = makeLabel("🔗  Noch nicht mit GitHub verbunden", size: 11, weight: .medium,
+        let authTitle = makeLabel("🔗  Not connected to GitHub", size: 11, weight: .medium,
                                   color: NSColor(calibratedWhite: 0.55, alpha: 1.0))
 
         tokenField.font = NSFont.monospacedSystemFont(ofSize: 10.5, weight: .regular)
@@ -8095,10 +8095,10 @@ class GitPanelView: NSView {
         tokenField.isBordered = false
         tokenField.focusRingType = .none
         tokenField.bezelStyle = .roundedBezel
-        tokenField.placeholderString = "GitHub Token einfügen (ghp_...)"
+        tokenField.placeholderString = "Paste GitHub token (ghp_...)"
         tokenField.translatesAutoresizingMaskIntoConstraints = false
 
-        tokenSaveBtn.title = "Verbinden"
+        tokenSaveBtn.title = "Connect"
         tokenSaveBtn.bezelStyle = .inline
         tokenSaveBtn.font = NSFont.systemFont(ofSize: 10, weight: .medium)
         tokenSaveBtn.contentTintColor = NSColor(calibratedRed: 0.45, green: 0.85, blue: 0.55, alpha: 1.0)
@@ -8140,7 +8140,7 @@ class GitPanelView: NSView {
         githubSyncLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         githubSyncLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        uploadBtn.title = "↑  Auf GitHub hochladen"
+        uploadBtn.title = "↑  Upload to GitHub"
         uploadBtn.bezelStyle = .rounded
         uploadBtn.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
         uploadBtn.contentTintColor = NSColor(calibratedRed: 0.5, green: 0.78, blue: 1.0, alpha: 1.0)
@@ -8230,7 +8230,7 @@ class GitPanelView: NSView {
         newRepoOverlay.isHidden = true
         addSubview(newRepoOverlay)
 
-        let title = makeLabel("Neues GitHub-Projekt erstellen", size: 13, weight: .semibold,
+        let title = makeLabel("Create new GitHub project", size: 13, weight: .semibold,
                               color: NSColor(calibratedWhite: 0.85, alpha: 1.0))
 
         repoNameField.isEditable = true
@@ -8248,7 +8248,7 @@ class GitPanelView: NSView {
                                  color: NSColor(calibratedWhite: 0.5, alpha: 1.0))
 
         repoPublicBtn.setButtonType(.radio)
-        repoPublicBtn.title = "Öffentlich"
+        repoPublicBtn.title = "Public"
         repoPublicBtn.font = NSFont.systemFont(ofSize: 10.5, weight: .regular)
         repoPublicBtn.contentTintColor = NSColor(calibratedWhite: 0.65, alpha: 1.0)
         repoPublicBtn.translatesAutoresizingMaskIntoConstraints = false
@@ -8257,7 +8257,7 @@ class GitPanelView: NSView {
         repoPublicBtn.state = .off
 
         repoPrivateBtn.setButtonType(.radio)
-        repoPrivateBtn.title = "Privat"
+        repoPrivateBtn.title = "Private"
         repoPrivateBtn.font = NSFont.systemFont(ofSize: 10.5, weight: .regular)
         repoPrivateBtn.contentTintColor = NSColor(calibratedWhite: 0.65, alpha: 1.0)
         repoPrivateBtn.translatesAutoresizingMaskIntoConstraints = false
@@ -8271,7 +8271,7 @@ class GitPanelView: NSView {
         visRow.alignment = .centerY
         visRow.translatesAutoresizingMaskIntoConstraints = false
 
-        repoCreateBtn.title = "✔  Erstellen & Hochladen"
+        repoCreateBtn.title = "✔  Create & Upload"
         repoCreateBtn.bezelStyle = .rounded
         repoCreateBtn.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
         repoCreateBtn.contentTintColor = NSColor(calibratedRed: 0.45, green: 0.85, blue: 0.55, alpha: 1.0)
@@ -8282,7 +8282,7 @@ class GitPanelView: NSView {
         repoCreateBtn.target = self
         repoCreateBtn.action = #selector(createRepoClicked)
 
-        let cancelBtn = makeBtn("Abbrechen", color: NSColor(calibratedWhite: 0.45, alpha: 1.0),
+        let cancelBtn = makeBtn("Cancel", color: NSColor(calibratedWhite: 0.45, alpha: 1.0),
                                 target: self, action: #selector(cancelNewRepo))
 
         let innerStack = NSStackView(views: [title, repoNameField, visRow, repoCreateBtn, cancelBtn])
@@ -8417,7 +8417,7 @@ class GitPanelView: NSView {
                     if x == "?" {
                         (tag, tagColor, fileColor) = ("NEU", NSColor(calibratedWhite: 0.45, alpha: 1.0), NSColor(calibratedWhite: 0.6, alpha: 1.0))
                     } else if x == "D" || y == "D" {
-                        (tag, tagColor, fileColor) = ("GELÖSCHT", NSColor(calibratedRed: 1.0, green: 0.4, blue: 0.4, alpha: 0.8), NSColor(calibratedRed: 0.8, green: 0.5, blue: 0.5, alpha: 0.8))
+                        (tag, tagColor, fileColor) = ("DELETED", NSColor(calibratedRed: 1.0, green: 0.4, blue: 0.4, alpha: 0.8), NSColor(calibratedRed: 0.8, green: 0.5, blue: 0.5, alpha: 0.8))
                     } else if x == "U" || y == "U" {
                         (tag, tagColor, fileColor) = ("KONFLIKT", NSColor(calibratedRed: 1.0, green: 0.35, blue: 0.35, alpha: 1.0), NSColor(calibratedRed: 1.0, green: 0.5, blue: 0.5, alpha: 1.0))
                     } else if "MADRC".contains(x) && x != " " && "MD".contains(y) && y != " " {
@@ -8425,7 +8425,7 @@ class GitPanelView: NSView {
                     } else if "MADRC".contains(x) && x != " " {
                         (tag, tagColor, fileColor) = ("BEREIT", NSColor(calibratedRed: 0.4, green: 0.85, blue: 0.45, alpha: 1.0), NSColor(calibratedRed: 0.5, green: 0.8, blue: 0.55, alpha: 1.0))
                     } else {
-                        (tag, tagColor, fileColor) = ("GEÄNDERT", NSColor(calibratedRed: 0.95, green: 0.7, blue: 0.25, alpha: 1.0), NSColor(calibratedRed: 0.85, green: 0.7, blue: 0.4, alpha: 1.0))
+                        (tag, tagColor, fileColor) = ("MODIFIED", NSColor(calibratedRed: 0.95, green: 0.7, blue: 0.25, alpha: 1.0), NSColor(calibratedRed: 0.85, green: 0.7, blue: 0.4, alpha: 1.0))
                     }
 
                     let attr = NSMutableAttributedString()
@@ -8469,13 +8469,13 @@ class GitPanelView: NSView {
         }
 
         if !isGitRepo {
-            statusLabel.stringValue = "Kein Tracking — starte es mit dem Button"
+            statusLabel.stringValue = "No tracking — start it with the button"
             statusLabel.textColor = NSColor(calibratedWhite: 0.4, alpha: 1.0)
         } else if fileEntries.isEmpty {
-            statusLabel.stringValue = "✅  Alles gespeichert – nichts zu tun"
+            statusLabel.stringValue = "✅  All saved — nothing to do"
             statusLabel.textColor = NSColor(calibratedRed: 0.4, green: 0.8, blue: 0.5, alpha: 1.0)
         } else {
-            statusLabel.stringValue = "\(fileEntries.count) Datei\(fileEntries.count == 1 ? "" : "en") geändert"
+            statusLabel.stringValue = "\(fileEntries.count) file\(fileEntries.count == 1 ? "" : "s") changed"
             statusLabel.textColor = NSColor(calibratedRed: 0.95, green: 0.75, blue: 0.3, alpha: 1.0)
         }
 
@@ -8529,7 +8529,7 @@ class GitPanelView: NSView {
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
-            let diffOut = self.runGit(args, cwd: self.lastCwd) ?? "Kein Diff verfügbar"
+            let diffOut = self.runGit(args, cwd: self.lastCwd) ?? "No diff available"
             DispatchQueue.main.async {
                 let diffView = self.makeDiffView(diffOut)
                 if let idx = self.filesStack.arrangedSubviews.firstIndex(where: { ($0 as? ClickableFileRow)?.filePath == filePath }) {
@@ -8597,7 +8597,7 @@ class GitPanelView: NSView {
     private func refreshGithubStatus(cwd: String) {
         guard github.isAuthenticated, isGitRepo, hasRemote else {
             if isGitRepo && !hasRemote && github.isAuthenticated {
-                githubSyncLabel.stringValue = "Noch nicht hochgeladen"
+                githubSyncLabel.stringValue = "Not yet uploaded"
                 githubSyncLabel.textColor = NSColor(calibratedWhite: 0.45, alpha: 1.0)
                 uploadBtn.isHidden = false
                 updateBtn.isHidden = true
@@ -8609,10 +8609,10 @@ class GitPanelView: NSView {
             githubSyncLabel.stringValue = "↑ \(ahead) zu senden, ↓ \(behind) zu holen"
             githubSyncLabel.textColor = NSColor(calibratedRed: 1.0, green: 0.7, blue: 0.3, alpha: 1.0)
         } else if ahead > 0 {
-            githubSyncLabel.stringValue = "↑ \(ahead) Änderung\(ahead == 1 ? "" : "en") zu senden"
+            githubSyncLabel.stringValue = "↑ \(ahead) change\(ahead == 1 ? "" : "s") to push"
             githubSyncLabel.textColor = NSColor(calibratedRed: 0.95, green: 0.8, blue: 0.35, alpha: 1.0)
         } else if behind > 0 {
-            githubSyncLabel.stringValue = "↓ \(behind) neue Änderung\(behind == 1 ? "" : "en") verfügbar"
+            githubSyncLabel.stringValue = "↓ \(behind) new change\(behind == 1 ? "" : "s") available"
             githubSyncLabel.textColor = NSColor(calibratedRed: 0.5, green: 0.7, blue: 1.0, alpha: 1.0)
         } else {
             githubSyncLabel.stringValue = "✓  Alles auf dem aktuellen Stand"
@@ -8659,7 +8659,7 @@ class GitPanelView: NSView {
     @objc private func saveClicked() {
         let msg = commitField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !msg.isEmpty else {
-            showFeedback("Bitte beschreibe zuerst was du geändert hast.", success: false)
+            showFeedback("Please describe what you changed first.", success: false)
             window?.makeFirstResponder(commitField)
             return
         }
@@ -8732,7 +8732,7 @@ class GitPanelView: NSView {
     @objc private func saveTokenClicked() {
         let value = tokenField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty else { return }
-        tokenSaveBtn.title = "Prüfe..."
+        tokenSaveBtn.title = "Checking..."
         tokenSaveBtn.isEnabled = false
         github.setToken(value)
         github.fetchUser { [weak self] username in
@@ -8743,9 +8743,9 @@ class GitPanelView: NSView {
                 self.refresh()
             } else {
                 self.github.logout()
-                self.showFeedback("Ungültiges Token — bitte nochmal versuchen", success: false)
+                self.showFeedback("Invalid token — please try again", success: false)
             }
-            self.tokenSaveBtn.title = "Verbinden"
+            self.tokenSaveBtn.title = "Connect"
             self.tokenSaveBtn.isEnabled = true
         }
     }
@@ -8802,7 +8802,7 @@ class GitPanelView: NSView {
             .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
 
         repoCreateBtn.isEnabled = false
-        repoCreateBtn.title = "Wird erstellt..."
+        repoCreateBtn.title = "Creating..."
 
         let cwd = lastCwd
         let branch = currentBranch.isEmpty ? "main" : currentBranch
@@ -8820,16 +8820,16 @@ class GitPanelView: NSView {
                     let push = self.runGitAction(["push", "-u", "origin", branch], cwd: cwd)
                     DispatchQueue.main.async {
                         self.repoCreateBtn.isEnabled = true
-                        self.repoCreateBtn.title = "✔  Erstellen & Hochladen"
+                        self.repoCreateBtn.title = "✔  Create & Upload"
                         self.cancelNewRepo()
-                        self.showFeedback(push.success ? "✓  Projekt auf GitHub erstellt & hochgeladen!" : "Repo erstellt, Push fehlgeschlagen: \(push.output)", success: push.success)
+                        self.showFeedback(push.success ? "✓  Project created & uploaded to GitHub!" : "Repo created, push failed: \(push.output)", success: push.success)
                         self.github.cache.lastFetch = .distantPast
                         self.refresh()
                     }
                 }
             } else {
                 self.repoCreateBtn.isEnabled = true
-                self.repoCreateBtn.title = "✔  Erstellen & Hochladen"
+                self.repoCreateBtn.title = "✔  Create & Upload"
                 self.showFeedback("Fehler: \(cloneURLOrError ?? "Unbekannter Fehler")", success: false)
             }
         }
