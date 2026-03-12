@@ -7242,7 +7242,9 @@ class AIUsageBadge: NSView {
 
 class AIUsagePopover: NSView {
     var onDismiss: (() -> Void)?
+    var onRefresh: (() -> Void)?
     private let contentStack = NSView()
+    private let refreshBtn = NSButton()
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -7256,10 +7258,31 @@ class AIUsagePopover: NSView {
         shadow?.shadowBlurRadius = 12
         shadow?.shadowOffset = NSSize(width: 0, height: -4)
 
+        refreshBtn.title = "↻"
+        refreshBtn.isBordered = false
+        refreshBtn.bezelStyle = .inline
+        refreshBtn.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        refreshBtn.contentTintColor = NSColor(calibratedWhite: 0.45, alpha: 1)
+        refreshBtn.toolTip = "Jetzt aktualisieren"
+        refreshBtn.target = self
+        refreshBtn.action = #selector(doRefresh)
+
         addSubview(contentStack)
+        addSubview(refreshBtn)
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    @objc private func doRefresh() {
+        refreshBtn.isEnabled = false
+        refreshBtn.contentTintColor = NSColor(calibratedWhite: 0.25, alpha: 1)
+        onRefresh?()
+    }
+
+    func setRefreshDone() {
+        refreshBtn.isEnabled = true
+        refreshBtn.contentTintColor = NSColor(calibratedWhite: 0.45, alpha: 1)
+    }
 
     func update(data: AIUsageData?) {
         contentStack.subviews.forEach { $0.removeFromSuperview() }
@@ -7318,6 +7341,8 @@ class AIUsagePopover: NSView {
         let totalH = y
         frame.size.height = totalH
         contentStack.frame = bounds
+        // Refresh button — bottom-right corner, aligned with timestamp row
+        refreshBtn.frame = NSRect(x: bounds.width - 28, y: 10, width: 22, height: 18)
     }
 
     private func addCategory(y: CGFloat, w: CGFloat, title: String, util: Double, resetsAt: Date?) -> CGFloat {
@@ -10967,6 +10992,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             self?.footerView.usageBadge.update(data: data)
             self?.footerView.needsLayout = true
             self?.usagePopover?.update(data: data)
+            self?.usagePopover?.setRefreshDone()
         }
         let showUsage = UserDefaults.standard.bool(forKey: "showAIUsage")
         footerView.usageBadge.isHidden = !showUsage
@@ -11516,6 +11542,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             y: footerH + 4,
             width: popW, height: popH))
         pop.update(data: AIUsageManager.shared.latestData)
+        pop.onRefresh = { AIUsageManager.shared.fetchUsage() }
         contentView.addSubview(pop)
         usagePopover = pop
 
