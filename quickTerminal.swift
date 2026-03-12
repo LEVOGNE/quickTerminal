@@ -8754,6 +8754,7 @@ class ChromeCDPClient {
     private var wsSession: URLSession?
     private var messageId = 0
     private var pendingCallbacks: [Int: ([String: Any]?) -> Void] = [:]
+    private let cdpQueue = DispatchQueue(label: "qt.cdp.serial")
 
     /// Prüft ob Chrome mit --remote-debugging-port läuft (2s Timeout)
     func isAvailable(completion: @escaping (Bool) -> Void) {
@@ -8818,40 +8819,63 @@ class ChromeCDPClient {
     private func receiveLoop() {
         webSocketTask?.receive { [weak self] result in
             guard let self = self else { return }
-            if case .success(let msg) = result, case .string(let text) = msg {
-                if let data = text.data(using: .utf8),
+            switch result {
+            case .failure:
+                // Connection closed or errored — stop looping
+                return
+            case .success(let msg):
+                if case .string(let text) = msg,
+                   let data = text.data(using: .utf8),
                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let id = json["id"] as? Int,
                    let cb = self.pendingCallbacks[id] {
-                    self.pendingCallbacks.removeValue(forKey: id)
-                    DispatchQueue.main.async { cb(json["result"] as? [String: Any]) }
+                    DispatchQueue.main.async {
+                        self.pendingCallbacks.removeValue(forKey: id)
+                        cb(json["result"] as? [String: Any])
+                    }
                 }
+                self.receiveLoop()
             }
-            self.receiveLoop()
         }
     }
 
     /// Führt JavaScript im aktiven Tab aus (Runtime.evaluate)
     func evaluate(_ expr: String, completion: @escaping ([String: Any]?) -> Void) {
+        guard let webSocketTask = webSocketTask else {
+            DispatchQueue.main.async { completion(nil) }
+            return
+        }
         messageId += 1
         let id = messageId
-        pendingCallbacks[id] = completion
         let msg: [String: Any] = [
             "id": id,
             "method": "Runtime.evaluate",
             "params": ["expression": expr, "returnByValue": true]
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: msg),
-              let text = String(data: data, encoding: .utf8) else { return }
-        webSocketTask?.send(.string(text)) { _ in }
+              let text = String(data: data, encoding: .utf8) else {
+            DispatchQueue.main.async { completion(nil) }
+            return
+        }
+        pendingCallbacks[id] = completion
+        webSocketTask.send(.string(text)) { [weak self] error in
+            if error != nil {
+                DispatchQueue.main.async {
+                    self?.pendingCallbacks.removeValue(forKey: id)
+                    completion(nil)
+                }
+            }
+        }
     }
 
     func disconnect() {
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
         wsSession = nil
-        pendingCallbacks.removeAll()
-        messageId = 0
+        cdpQueue.sync {
+            pendingCallbacks.removeAll()
+            messageId = 0
+        }
     }
 }
 
