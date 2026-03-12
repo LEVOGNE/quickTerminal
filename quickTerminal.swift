@@ -7017,6 +7017,7 @@ class AIUsageManager {
 
     var onUpdate: ((AIUsageData?) -> Void)?
     private(set) var latestData: AIUsageData?
+    private(set) var lastStatusCode = 0
     private var pollTimer: Timer?
     private var cachedToken: String?
     private var tokenChecked = false
@@ -7071,6 +7072,7 @@ class AIUsageManager {
             if let data = data, let body = String(data: data, encoding: .utf8) {
                 self.debugLog("Response: \(String(body.prefix(500)))")
             }
+            DispatchQueue.main.async { self.lastStatusCode = statusCode }
             // Auth errors → clear badge (token revoked/expired)
             if statusCode == 401 || statusCode == 403 {
                 DispatchQueue.main.async { self.onUpdate?(nil) }
@@ -7288,9 +7290,28 @@ class AIUsagePopover: NSView {
         contentStack.subviews.forEach { $0.removeFromSuperview() }
 
         guard let data = data else {
-            let noData = makeLabel("No usage data", size: 10, color: NSColor(calibratedWhite: 0.5, alpha: 1))
+            let statusCode = AIUsageManager.shared.lastStatusCode
+            let msg: String
+            let msgColor: NSColor
+            if statusCode == 429 {
+                msg = "API gedrosselt (429) — bitte warten"
+                msgColor = NSColor(calibratedRed: 0.9, green: 0.6, blue: 0.2, alpha: 1)
+            } else if statusCode == 401 || statusCode == 403 {
+                msg = "Token ungültig — bitte neu anmelden"
+                msgColor = NSColor(calibratedRed: 0.85, green: 0.35, blue: 0.35, alpha: 1)
+            } else if statusCode == 0 {
+                msg = "Warte auf erste Antwort..."
+                msgColor = NSColor(calibratedWhite: 0.5, alpha: 1)
+            } else {
+                msg = "Keine Daten (HTTP \(statusCode))"
+                msgColor = NSColor(calibratedWhite: 0.5, alpha: 1)
+            }
+            let noData = makeLabel(msg, size: 10, color: msgColor)
             contentStack.addSubview(noData)
-            noData.frame = NSRect(x: 12, y: 12, width: 180, height: 16)
+            noData.frame = NSRect(x: 12, y: 14, width: bounds.width - 44, height: 16)
+            frame.size.height = 46
+            contentStack.frame = bounds
+            refreshBtn.frame = NSRect(x: bounds.width - 28, y: 12, width: 22, height: 18)
             return
         }
 
