@@ -9084,6 +9084,45 @@ class ChromeCDPClient {
             DispatchQueue.main.async { completion(wsURL) }
         }.resume()
     }
+
+    /// Closes a Chrome tab via /json/close/{targetId}
+    func closeTab(targetId: String, completion: @escaping () -> Void) {
+        guard let url = URL(string: "http://localhost:\(Self.debugPort)/json/close/\(targetId)") else {
+            DispatchQueue.main.async { completion() }; return
+        }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 3.0
+        URLSession.shared.dataTask(with: req) { _, resp, _ in
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+            print("[CDP] closeTab /json/close/\(targetId) → HTTP \(code)")
+            DispatchQueue.main.async { completion() }
+        }.resume()
+    }
+
+    /// Returns hostname of the currently active page tab (e.g. "github.com")
+    func getTabHostname(targetId: String, completion: @escaping (String?) -> Void) {
+        guard let url = URL(string: "http://localhost:\(Self.debugPort)/json/list") else {
+            DispatchQueue.main.async { completion(nil) }; return
+        }
+        URLSession.shared.dataTask(with: URLRequest(url: url)) { data, _, _ in
+            guard let data = data,
+                  let tabs = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+                  let tab = tabs.first(where: { ($0["id"] as? String) == targetId }),
+                  let tabURL = tab["url"] as? String else {
+                DispatchQueue.main.async { completion(nil) }; return
+            }
+            // Extract hostname: "https://github.com/foo" → "github.com"
+            let hostname: String
+            if tabURL == "about:blank" || tabURL.isEmpty {
+                hostname = ""
+            } else if let host = URL(string: tabURL)?.host {
+                hostname = host
+            } else {
+                hostname = tabURL
+            }
+            DispatchQueue.main.async { completion(hostname) }
+        }.resume()
+    }
 }
 
 // MARK: - HTML Picker Panel
