@@ -9104,7 +9104,9 @@ class ChromeCDPClient {
         guard let url = URL(string: "http://localhost:\(Self.debugPort)/json/list") else {
             DispatchQueue.main.async { completion(nil) }; return
         }
-        URLSession.shared.dataTask(with: URLRequest(url: url)) { data, _, _ in
+        var listReq = URLRequest(url: url)
+        listReq.timeoutInterval = 3.0
+        URLSession.shared.dataTask(with: listReq) { data, _, _ in
             guard let data = data,
                   let tabs = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
                   let tab = tabs.first(where: { ($0["id"] as? String) == targetId }),
