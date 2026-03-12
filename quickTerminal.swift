@@ -8991,7 +8991,7 @@ class HTMLPickerPanel: NSPanel {
                 self.connectToTab()
             } else {
                 self.setStatus("Chrome wird gestartet...", color: .systemOrange)
-                self.cdp.launchChrome { self.connectToTab() }
+                self.cdp.launchChrome { [weak self] in self?.connectToTab() }
             }
         }
     }
@@ -9027,7 +9027,7 @@ class HTMLPickerPanel: NSPanel {
         previewLabel.stringValue = ""
         feedbackLabel.isHidden = true
 
-        cdp.evaluate("window.__qtPickedHTML = null; void 0;") { _ in }
+        cdp.evaluate("window.__qtPickedHTML = null; window.__qtPickerActive = false; void 0;") { _ in }
 
         let pickerJS = """
         (function() {
@@ -9121,8 +9121,10 @@ class HTMLPickerPanel: NSPanel {
     override func close() {
         pollTimer?.invalidate()
         pollTimer = nil
-        cdp.evaluate("window.__qtPickerActive = false; document.querySelectorAll('*').forEach(function(el){el.style.outline='';el.style.outlineOffset='';});") { _ in }
-        cdp.disconnect()
+        let cleanup = "window.__qtPickerActive = false; document.querySelectorAll('*').forEach(function(el){el.style.outline='';el.style.outlineOffset='';}); void 0;"
+        cdp.evaluate(cleanup) { [weak self] _ in
+            self?.cdp.disconnect()
+        }
         super.close()
     }
 
