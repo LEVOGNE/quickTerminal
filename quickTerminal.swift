@@ -8754,7 +8754,6 @@ class ChromeCDPClient {
     private var wsSession: URLSession?
     private var messageId = 0
     private var pendingCallbacks: [Int: ([String: Any]?) -> Void] = [:]
-    private let cdpQueue = DispatchQueue(label: "qt.cdp.serial")
 
     /// Prüft ob Chrome mit --remote-debugging-port läuft (2s Timeout)
     func isAvailable(completion: @escaping (Bool) -> Void) {
@@ -8827,10 +8826,10 @@ class ChromeCDPClient {
                 if case .string(let text) = msg,
                    let data = text.data(using: .utf8),
                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let id = json["id"] as? Int,
-                   let cb = self.pendingCallbacks[id] {
-                    DispatchQueue.main.async {
-                        self.pendingCallbacks.removeValue(forKey: id)
+                   let id = json["id"] as? Int {
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self,
+                              let cb = self.pendingCallbacks.removeValue(forKey: id) else { return }
                         cb(json["result"] as? [String: Any])
                     }
                 }
@@ -8872,10 +8871,8 @@ class ChromeCDPClient {
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
         wsSession = nil
-        cdpQueue.sync {
-            pendingCallbacks.removeAll()
-            messageId = 0
-        }
+        pendingCallbacks.removeAll()
+        messageId = 0
     }
 }
 
