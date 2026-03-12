@@ -5877,6 +5877,12 @@ class SettingsOverlay: NSView {
         rows.append(makeToggleRow(label: "Launch at Login", settingsKey: "autoStartEnabled"))
         rows.append(makeToggleRow(label: "Auto-Check Updates", settingsKey: "autoCheckUpdates"))
 
+        // HTML Picker
+        rows.append(makeSectionHeader("HTML Picker"))
+        rows.append(makeSegmentRow(label: "Browser", options: ["Chrome", "Safari"],
+            selected: UserDefaults.standard.integer(forKey: "htmlPickerBrowser"),
+            key: "htmlPickerBrowser"))
+
         // AI Usage
         rows.append(makeSectionHeader("Claude Code"))
         rows.append(makeToggleRow(label: "Show Usage Badge", settingsKey: "showAIUsage"))
@@ -6586,6 +6592,7 @@ class SettingsOverlay: NSView {
         "promptTheme": "default",
         "autoStartEnabled": false,
         "autoCheckUpdates": true,
+        "htmlPickerBrowser": 0,
         "showAIUsage": true,
         "aiUsageRefreshIndex": 2,
     ]
@@ -11683,6 +11690,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             p.close()
             htmlPickerPanel = nil
             return
+        }
+        // Show one-time Safari setup hint
+        if UserDefaults.standard.integer(forKey: "htmlPickerBrowser") == 1 &&
+           !UserDefaults.standard.bool(forKey: "htmlPickerSafariHintShown") {
+            UserDefaults.standard.set(true, forKey: "htmlPickerSafariHintShown")
+            showGenericToast(badge: "SAFARI",
+                text: "Web Inspector aktivieren: Safari → Entwickler → Remote Automation erlauben",
+                badgeColor: NSColor(calibratedRed: 0.3, green: 0.5, blue: 0.9, alpha: 1.0))
         }
         let panel = HTMLPickerPanel()
         htmlPickerPanel = panel
