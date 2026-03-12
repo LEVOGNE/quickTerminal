@@ -10696,6 +10696,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let gitDefaultRatioH: CGFloat = 0.30   // factory default: bottom panel
     var settingsOverlay: SettingsOverlay?
     var commandPalette: CommandPaletteView?
+    var htmlPickerPanel: HTMLPickerPanel?
     var helpViewer: HelpViewer?
     var perfOverlay: DiagnosticsOverlay?
     var parserOverlay: DiagnosticsOverlay?
@@ -11677,6 +11678,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
+    func toggleHTMLPicker() {
+        if let p = htmlPickerPanel, p.isVisible {
+            p.close()
+            htmlPickerPanel = nil
+            return
+        }
+        let panel = HTMLPickerPanel()
+        htmlPickerPanel = panel
+        panel.connect()
+        panel.makeKeyAndOrderFront(nil)
+    }
+
     // MARK: - Git Panel
 
     func toggleGitPanel() {
@@ -11994,6 +12007,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 self.startUpdateDownload(release: release)
             },
             PaletteCommand(title: "Auto-Check Updates (\(onOff("autoCheckUpdates")))", shortcut: "") { [weak self] in self?.promptToggle("Auto-Check Updates", key: "autoCheckUpdates") },
+            PaletteCommand(title: "HTML Picker", shortcut: "") { [weak self] in self?.toggleHTMLPicker() },
             PaletteCommand(title: "Git", shortcut: "") { [weak self] in self?.toggleGitPanel() },
         ]
     }
