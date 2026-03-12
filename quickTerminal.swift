@@ -5914,7 +5914,7 @@ class SettingsOverlay: NSView {
         rows.append(makeToggleRow(label: "Auto-Check Updates", settingsKey: "autoCheckUpdates"))
 
         // HTML Picker
-        rows.append(makeSectionHeader("HTML Picker"))
+        rows.append(makeSectionHeader("WebPicker"))
         rows.append(makeSegmentRow(label: "Browser", options: ["Chrome", "Safari"],
             selected: 0,
             key: "htmlPickerBrowser",
