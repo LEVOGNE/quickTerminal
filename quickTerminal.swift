@@ -7940,7 +7940,7 @@ class GitPanelView: NSView {
                               color: NSColor(calibratedWhite: 0.6, alpha: 1.0))
         let sub = makeLabel("Klicke auf den Button um das Tracking für diesen Ordner zu starten.", size: 10.5, weight: .regular,
                             color: NSColor(calibratedWhite: 0.4, alpha: 1.0))
-        let initBtn = makeBtn("🚀  Mit Tracking starten", color: NSColor(calibratedRed: 0.45, green: 0.85, blue: 0.55, alpha: 1.0),
+        let initBtn = makeBtn("Mit Tracking starten", color: NSColor(calibratedRed: 0.45, green: 0.85, blue: 0.55, alpha: 1.0),
                               target: self, action: #selector(initRepoClicked))
 
         _ = addToCard(noRepoCard, views: [title, sub, initBtn], padding: 14, spacing: 8)
