@@ -4072,6 +4072,7 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
     var onSplitVertical: (() -> Void)?
     var onSplitHorizontal: (() -> Void)?
     var onGitToggle: (() -> Void)?
+    var onWebPickerToggle: (() -> Void)?
 
     private var tabContainer = NSView()
     private let tabScrollView = NSScrollView()
@@ -4079,6 +4080,7 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
     private var splitVBtn: SplitIconButton!
     private var splitHBtn: SplitIconButton!
     private var gitBtn: HoverButton!
+    private var htmlBtn: HoverButton!
     private let sep = NSView()
     private var lastTitles: [String] = []
     private var lastActiveIndex: Int = -1
@@ -4145,6 +4147,17 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
         gitBtn.translatesAutoresizingMaskIntoConstraints = false
         addSubview(gitBtn)
 
+        // HTML Picker button
+        htmlBtn = HoverButton(title: "</>", fontSize: 9, weight: .bold,
+            normalColor: NSColor(calibratedWhite: 0.5, alpha: 1.0),
+            hoverColor: NSColor(calibratedRed: 0.35, green: 0.85, blue: 0.55, alpha: 1.0),
+            hoverBg: NSColor(calibratedRed: 0.35, green: 0.85, blue: 0.55, alpha: 0.12),
+            pressBg: NSColor(calibratedRed: 0.35, green: 0.85, blue: 0.55, alpha: 0.25),
+            cornerRadius: 4)
+        htmlBtn.onClick = { [weak self] in self?.onWebPickerToggle?() }
+        htmlBtn.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(htmlBtn)
+
         // Separator line at bottom
         sep.wantsLayer = true
         sep.layer?.backgroundColor = NSColor(calibratedWhite: 1.0, alpha: 0.08).cgColor
@@ -4168,10 +4181,15 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
             splitHBtn.widthAnchor.constraint(equalToConstant: 20),
             splitHBtn.heightAnchor.constraint(equalToConstant: 20),
 
-            gitBtn.trailingAnchor.constraint(equalTo: addBtn.leadingAnchor, constant: -4),
+            gitBtn.trailingAnchor.constraint(equalTo: htmlBtn.leadingAnchor, constant: -4),
             gitBtn.centerYAnchor.constraint(equalTo: centerYAnchor),
             gitBtn.widthAnchor.constraint(equalToConstant: 30),
             gitBtn.heightAnchor.constraint(equalToConstant: 20),
+
+            htmlBtn.trailingAnchor.constraint(equalTo: addBtn.leadingAnchor, constant: -4),
+            htmlBtn.centerYAnchor.constraint(equalTo: centerYAnchor),
+            htmlBtn.widthAnchor.constraint(equalToConstant: 30),
+            htmlBtn.heightAnchor.constraint(equalToConstant: 20),
 
             addBtn.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
             addBtn.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -4284,6 +4302,16 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
         } else {
             gitBtn.label.textColor = NSColor(calibratedWhite: 0.5, alpha: 1.0)
             gitBtn.layer?.backgroundColor = NSColor.clear.cgColor
+        }
+    }
+
+    func setWebPickerActive(_ active: Bool) {
+        if active {
+            htmlBtn.label.textColor = NSColor(calibratedRed: 0.35, green: 0.85, blue: 0.55, alpha: 1.0)
+            htmlBtn.layer?.backgroundColor = NSColor(calibratedRed: 0.35, green: 0.85, blue: 0.55, alpha: 0.15).cgColor
+        } else {
+            htmlBtn.label.textColor = NSColor(calibratedWhite: 0.5, alpha: 1.0)
+            htmlBtn.layer?.backgroundColor = NSColor.clear.cgColor
         }
     }
 
@@ -5888,8 +5916,9 @@ class SettingsOverlay: NSView {
         // HTML Picker
         rows.append(makeSectionHeader("HTML Picker"))
         rows.append(makeSegmentRow(label: "Browser", options: ["Chrome", "Safari"],
-            selected: UserDefaults.standard.integer(forKey: "htmlPickerBrowser"),
-            key: "htmlPickerBrowser"))
+            selected: 0,
+            key: "htmlPickerBrowser",
+            disabled: true))
 
         // AI Usage
         rows.append(makeSectionHeader("Claude Code"))
@@ -6361,12 +6390,12 @@ class SettingsOverlay: NSView {
         return row
     }
 
-    private func makeSegmentRow(label: String, options: [String], selected: Int, key: String, onChange: ((Int) -> Void)? = nil) -> NSView {
+    private func makeSegmentRow(label: String, options: [String], selected: Int, key: String, onChange: ((Int) -> Void)? = nil, disabled: Bool = false) -> NSView {
         let row = SettingsRowView()
 
         let lbl = NSTextField(labelWithString: label)
         lbl.font = NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
-        lbl.textColor = NSColor(calibratedWhite: 0.75, alpha: 1.0)
+        lbl.textColor = disabled ? NSColor(calibratedWhite: 0.4, alpha: 1.0) : NSColor(calibratedWhite: 0.75, alpha: 1.0)
         lbl.isEditable = false; lbl.isBordered = false; lbl.drawsBackground = false
         lbl.translatesAutoresizingMaskIntoConstraints = false
         row.addSubview(lbl)
@@ -6377,20 +6406,23 @@ class SettingsOverlay: NSView {
         seg.controlSize = .mini
         seg.segmentStyle = .rounded
         seg.font = NSFont.monospacedSystemFont(ofSize: 9, weight: .medium)
+        seg.isEnabled = !disabled
+        seg.alphaValue = disabled ? 0.35 : 1.0
         seg.translatesAutoresizingMaskIntoConstraints = false
         row.addSubview(seg)
 
-        row.hoverControl = seg
-
-        seg.target = BlockTarget.shared
-        let handler: (NSSegmentedControl) -> Void = { [weak self] s in
-            let idx = s.selectedSegment
-            UserDefaults.standard.set(idx, forKey: key)
-            self?.onChanged?(key, idx)
-            self?.updateResetButtonState()
-            onChange?(idx)
+        if !disabled {
+            row.hoverControl = seg
+            seg.target = BlockTarget.shared
+            let handler: (NSSegmentedControl) -> Void = { [weak self] s in
+                let idx = s.selectedSegment
+                UserDefaults.standard.set(idx, forKey: key)
+                self?.onChanged?(key, idx)
+                self?.updateResetButtonState()
+                onChange?(idx)
+            }
+            BlockTarget.shared.registerSeg(seg, handler: handler)
         }
-        BlockTarget.shared.registerSeg(seg, handler: handler)
 
         NSLayoutConstraint.activate([
             lbl.centerYAnchor.constraint(equalTo: row.centerYAnchor),
@@ -6621,7 +6653,7 @@ class SettingsOverlay: NSView {
         // Window size not at default 720×480
         let w = ud.double(forKey: "windowWidth")
         let h = ud.double(forKey: "windowHeight")
-        if w > 0 && abs(w - 720) > 1 { return false }
+        if w > 0 && abs(w - 860) > 1 { return false }
         if h > 0 && abs(h - 480) > 1 { return false }
         // Window was moved from default centered position
         let sx = ud.double(forKey: "windowX")
@@ -8833,49 +8865,126 @@ class ChromeCDPClient {
 
     /// Prüft ob Chrome mit --remote-debugging-port läuft (2s Timeout)
     func isAvailable(completion: @escaping (Bool) -> Void) {
-        guard let url = URL(string: "http://localhost:\(Self.debugPort)/json") else {
-            completion(false); return
-        }
+        let urlStr = "http://localhost:\(Self.debugPort)/json"
+        guard let url = URL(string: urlStr) else { completion(false); return }
         var req = URLRequest(url: url)
         req.timeoutInterval = 2.0
-        URLSession.shared.dataTask(with: req) { _, response, _ in
-            DispatchQueue.main.async {
-                completion((response as? HTTPURLResponse)?.statusCode == 200)
-            }
+        URLSession.shared.dataTask(with: req) { _, response, error in
+            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+            let ok = code == 200
+            print("[CDP] isAvailable \(urlStr) → HTTP \(code)\(error != nil ? " error=\(error!.localizedDescription)" : "")")
+            DispatchQueue.main.async { completion(ok) }
         }.resume()
     }
 
-    /// Startet Chrome neu mit --remote-debugging-port
-    func launchChrome(completion: @escaping () -> Void) {
+    /// Startet Chrome mit --remote-debugging-port, dann polling bis CDP bereit
+    func launchChrome(onStatus: ((String) -> Void)? = nil, completion: @escaping () -> Void) {
+        openChrome()
+        pollUntilAvailable(attempts: 14, interval: 0.7, onStatus: onStatus, completion: completion)
+    }
+
+    /// Beendet laufendes Chrome und startet es neu mit --remote-debugging-port
+    func forceRelaunchChrome(onStatus: ((String) -> Void)? = nil, completion: @escaping () -> Void) {
+        for name in ["Google Chrome", "Chromium", "Google Chrome Canary"] {
+            let kill = Process()
+            kill.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
+            kill.arguments = [name]
+            kill.standardOutput = FileHandle.nullDevice
+            kill.standardError  = FileHandle.nullDevice
+            let r = (try? kill.run()) != nil
+            print("[CDP] killall \"\(name)\" → launched=\(r)")
+        }
+        onStatus?("Chrome wird beendet...")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
+            guard let self = self else { return }
+            self.openChrome()
+            self.pollUntilAvailable(attempts: 16, interval: 0.8, onStatus: onStatus, completion: completion)
+        }
+    }
+
+    /// Pollt isAvailable bis CDP antwortet oder Versuche erschöpft
+    private func pollUntilAvailable(attempts: Int, interval: TimeInterval,
+                                     onStatus: ((String) -> Void)?, completion: @escaping () -> Void) {
+        if attempts <= 0 {
+            print("[CDP] pollUntilAvailable TIMEOUT — CDP never responded")
+            completion(); return
+        }
+        isAvailable { [weak self] available in
+            guard let self = self else { return }
+            if available {
+                print("[CDP] pollUntilAvailable → CDP ready!")
+                completion()
+            } else {
+                let dots = String(repeating: ".", count: 4 - (attempts % 4))
+                onStatus?("Warte auf Chrome\(dots)")
+                DispatchQueue.main.asyncAfter(deadline: .now() + interval) {
+                    self.pollUntilAvailable(attempts: attempts - 1, interval: interval,
+                                             onStatus: onStatus, completion: completion)
+                }
+            }
+        }
+    }
+
+    private func openChrome() {
+        // Key insight (same approach as Puppeteer/Playwright):
+        // Chrome ignores --remote-debugging-port when another instance already runs in the SAME profile.
+        // Solution: --user-data-dir points to a fresh tmp dir → forces a truly new instance with its own port.
+        let tmpDir = "/tmp/qt-chrome-debug-\(Self.debugPort)"
         let candidates = [
             "/Applications/Google Chrome.app",
             "/Applications/Chromium.app",
-            "/Applications/Google Chrome Canary.app"
+            "/Applications/Google Chrome Canary.app",
         ]
-        guard let path = candidates.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
-            DispatchQueue.main.async { completion() }
+        guard let app = candidates.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
+            print("[CDP] openChrome → no Chrome app found!")
             return
         }
+        print("[CDP] openChrome → open -na \(app) --user-data-dir=\(tmpDir) --remote-debugging-port=\(Self.debugPort)")
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        proc.arguments = ["-a", path, "--args", "--remote-debugging-port=\(Self.debugPort)"]
-        try? proc.run()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { completion() }
+        proc.arguments = ["-na", app, "--args",
+                          "--user-data-dir=\(tmpDir)",
+                          "--remote-debugging-port=\(Self.debugPort)",
+                          "--no-first-run",
+                          "--no-default-browser-check",
+                          "--disable-session-restore"]
+        proc.standardOutput = FileHandle.nullDevice
+        proc.standardError  = FileHandle.nullDevice
+        do { try proc.run(); print("[CDP] openChrome → launched") }
+        catch { print("[CDP] openChrome → launch failed: \(error)") }
     }
 
     /// Gibt die WebSocket-URL des ersten aktiven Page-Tabs zurück
     func getActiveTabWS(completion: @escaping (String?) -> Void) {
-        guard let url = URL(string: "http://localhost:\(Self.debugPort)/json/list") else {
-            completion(nil); return
-        }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        let urlStr = "http://localhost:\(Self.debugPort)/json/list"
+        guard let url = URL(string: urlStr) else { completion(nil); return }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 3.0
+        URLSession.shared.dataTask(with: req) { data, response, error in
+            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+            print("[CDP] getActiveTabWS \(urlStr) → HTTP \(code)\(error != nil ? " error=\(error!.localizedDescription)" : "")")
+            if let data = data, let raw = String(data: data, encoding: .utf8) {
+                print("[CDP] getActiveTabWS raw: \(raw.prefix(400))")
+            }
             guard let data = data,
-                  let tabs = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
-                  let tab = tabs.first(where: { ($0["type"] as? String) == "page" }),
-                  let wsURL = tab["webSocketDebuggerUrl"] as? String else {
+                  let tabs = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+                print("[CDP] getActiveTabWS → JSON parse failed")
                 DispatchQueue.main.async { completion(nil) }
                 return
             }
+            print("[CDP] getActiveTabWS → \(tabs.count) tabs, types: \(tabs.compactMap { $0["type"] as? String })")
+            guard let tab = tabs.first(where: {
+                guard ($0["type"] as? String) == "page",
+                      let tabURL = $0["url"] as? String else { return false }
+                // Skip Chrome-internal pages — JS injection doesn't work there
+                return tabURL.hasPrefix("http://") || tabURL.hasPrefix("https://") || tabURL == "about:blank"
+            }), let wsURL = tab["webSocketDebuggerUrl"] as? String else {
+                print("[CDP] getActiveTabWS → no injectable 'page' tab found")
+                DispatchQueue.main.async { completion(nil) }
+                return
+            }
+            let tabTitle = tab["title"] as? String ?? ""
+            print("[CDP] getActiveTabWS → wsURL=\(wsURL) title=\(tabTitle)")
             DispatchQueue.main.async { completion(wsURL) }
         }.resume()
     }
@@ -8884,11 +8993,15 @@ class ChromeCDPClient {
     func connect(wsURL: String, completion: @escaping (Bool) -> Void) {
         disconnect()
         guard let url = URL(string: wsURL) else { completion(false); return }
+        print("[CDP] connect → WebSocket \(wsURL)")
         wsSession = URLSession(configuration: .default)
         webSocketTask = wsSession?.webSocketTask(with: url)
         webSocketTask?.resume()
         receiveLoop()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { completion(true) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            print("[CDP] connect → assumed connected")
+            completion(true)
+        }
     }
 
     private func receiveLoop() {
@@ -8950,6 +9063,27 @@ class ChromeCDPClient {
         pendingCallbacks.removeAll()
         messageId = 0
     }
+
+    /// Creates a new blank tab via /json/new (works even when Chrome has no open windows)
+    func createBlankTab(completion: @escaping (String?) -> Void) {
+        guard let url = URL(string: "http://localhost:\(Self.debugPort)/json/new?about:blank") else {
+            DispatchQueue.main.async { completion(nil) }; return
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "PUT"
+        req.timeoutInterval = 3.0
+        URLSession.shared.dataTask(with: req) { data, resp, _ in
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+            print("[CDP] createBlankTab /json/new → HTTP \(code)")
+            guard let data = data,
+                  let tab = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let wsURL = tab["webSocketDebuggerUrl"] as? String else {
+                DispatchQueue.main.async { completion(nil) }; return
+            }
+            print("[CDP] createBlankTab → wsURL=\(wsURL)")
+            DispatchQueue.main.async { completion(wsURL) }
+        }.resume()
+    }
 }
 
 // MARK: - HTML Picker Panel
@@ -8962,6 +9096,7 @@ class HTMLPickerPanel: NSPanel {
     private let statusDot = NSView()
     private let statusLabel = NSTextField(labelWithString: "Nicht verbunden")
     private let pickBtn = NSButton()
+    private let relaunchBtn = NSButton()
     private let divider = NSBox()
     private let previewLabel = NSTextField(labelWithString: "")
     private let feedbackLabel = NSTextField(labelWithString: "")
@@ -9007,6 +9142,13 @@ class HTMLPickerPanel: NSPanel {
         pickBtn.action = #selector(startPicking)
         pickBtn.translatesAutoresizingMaskIntoConstraints = false
 
+        relaunchBtn.title = "⊕  Debug-Chrome öffnen"
+        relaunchBtn.bezelStyle = .rounded
+        relaunchBtn.isHidden = true
+        relaunchBtn.target = self
+        relaunchBtn.action = #selector(doRelaunch)
+        relaunchBtn.translatesAutoresizingMaskIntoConstraints = false
+
         divider.boxType = .separator
         divider.translatesAutoresizingMaskIntoConstraints = false
 
@@ -9027,7 +9169,7 @@ class HTMLPickerPanel: NSPanel {
         feedbackLabel.isHidden = true
         feedbackLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        [statusDot, statusLabel, pickBtn, divider, previewLabel, feedbackLabel].forEach { cv.addSubview($0) }
+        [statusDot, statusLabel, pickBtn, relaunchBtn, divider, previewLabel, feedbackLabel].forEach { cv.addSubview($0) }
 
         NSLayoutConstraint.activate([
             statusDot.leadingAnchor.constraint(equalTo: cv.leadingAnchor, constant: 16),
@@ -9043,9 +9185,13 @@ class HTMLPickerPanel: NSPanel {
             pickBtn.trailingAnchor.constraint(equalTo: cv.trailingAnchor, constant: -12),
             pickBtn.topAnchor.constraint(equalTo: statusDot.bottomAnchor, constant: 10),
 
+            relaunchBtn.leadingAnchor.constraint(equalTo: cv.leadingAnchor, constant: 12),
+            relaunchBtn.trailingAnchor.constraint(equalTo: cv.trailingAnchor, constant: -12),
+            relaunchBtn.topAnchor.constraint(equalTo: pickBtn.bottomAnchor, constant: 6),
+
             divider.leadingAnchor.constraint(equalTo: cv.leadingAnchor, constant: 12),
             divider.trailingAnchor.constraint(equalTo: cv.trailingAnchor, constant: -12),
-            divider.topAnchor.constraint(equalTo: pickBtn.bottomAnchor, constant: 10),
+            divider.topAnchor.constraint(equalTo: relaunchBtn.bottomAnchor, constant: 6),
 
             previewLabel.leadingAnchor.constraint(equalTo: cv.leadingAnchor, constant: 12),
             previewLabel.trailingAnchor.constraint(equalTo: cv.trailingAnchor, constant: -12),
@@ -9061,13 +9207,17 @@ class HTMLPickerPanel: NSPanel {
     func connect() {
         setStatus("Verbinde...", color: .systemOrange)
         pickBtn.isEnabled = false
+        relaunchBtn.isHidden = true
         cdp.isAvailable { [weak self] available in
             guard let self = self else { return }
             if available {
                 self.connectToTab()
             } else {
-                self.setStatus("Chrome wird gestartet...", color: .systemOrange)
-                self.cdp.launchChrome { [weak self] in self?.connectToTab() }
+                self.cdp.launchChrome(onStatus: { [weak self] msg in
+                    self?.setStatus(msg, color: .systemOrange)
+                }) { [weak self] in
+                    self?.connectToTab()
+                }
             }
         }
     }
@@ -9076,18 +9226,25 @@ class HTMLPickerPanel: NSPanel {
         cdp.getActiveTabWS { [weak self] wsURL in
             guard let self = self else { return }
             guard let wsURL = wsURL else {
-                self.setStatus("Kein Tab gefunden", color: .systemRed)
+                self.setStatus("Kein Debug-Chrome — Tab öffnen", color: .systemRed)
+                self.relaunchBtn.isHidden = false
                 return
             }
+            self.relaunchBtn.isHidden = true
             self.cdp.connect(wsURL: wsURL) { success in
                 if success {
                     self.setStatus("Chrome verbunden", color: .systemGreen)
                     self.pickBtn.isEnabled = true
                 } else {
                     self.setStatus("Verbindung fehlgeschlagen", color: .systemRed)
+                    self.relaunchBtn.isHidden = false
                 }
             }
         }
+    }
+
+    @objc private func doRelaunch() {
+        connect()
     }
 
     private func setStatus(_ text: String, color: NSColor) {
@@ -9152,7 +9309,8 @@ class HTMLPickerPanel: NSPanel {
         cdp.evaluate("typeof window.__qtPickedHTML !== 'undefined' && window.__qtPickedHTML !== null ? window.__qtPickedHTML : null") { [weak self] result in
             guard let self = self,
                   let dict = result,
-                  let value = dict["value"] as? String,
+                  let inner = dict["result"] as? [String: Any],
+                  let value = inner["value"] as? String,
                   !value.isEmpty else { return }
             self.pollTimer?.invalidate()
             self.pollTimer = nil
@@ -9208,6 +9366,297 @@ class HTMLPickerPanel: NSPanel {
         pollTimer?.invalidate()
         cdp.disconnect()
     }
+}
+
+// MARK: - WebPicker Sidebar View
+
+class WebPickerSidebarView: NSView {
+    private let cdp = ChromeCDPClient()
+    private var pollTimer: Timer?
+    private var tabSearchTimer: Timer?
+    private var isConnected = false
+    var onClose: (() -> Void)?
+
+    // UI
+    private let titleLabel  = NSTextField(labelWithString: "◈  WebPicker")
+    private let closeBtn    = NSButton()
+    private let titleSep    = NSView()
+    private let statusDot   = NSView()
+    private let statusLabel = NSTextField(labelWithString: "Nicht verbunden")
+    private let pickBtn     = NSButton()
+    private let relaunchBtn = NSButton()
+    private let previewSep  = NSView()
+    private let previewLabel = NSTextField(labelWithString: "")
+    private let feedbackLabel = NSTextField(labelWithString: "")
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        layer?.backgroundColor = NSColor(calibratedWhite: 0.07, alpha: 1).cgColor
+        setupUI()
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func makeLabel(_ s: String, size: CGFloat, weight: NSFont.Weight = .regular,
+                           color: NSColor = .secondaryLabelColor) -> NSTextField {
+        let f = NSTextField(labelWithString: s)
+        f.font = NSFont.systemFont(ofSize: size, weight: weight)
+        f.textColor = color; f.isEditable = false; f.isBordered = false; f.drawsBackground = false
+        return f
+    }
+
+    private func setupUI() {
+        // Title
+        titleLabel.font = NSFont.systemFont(ofSize: 10.5, weight: .semibold)
+        titleLabel.textColor = NSColor(calibratedWhite: 0.75, alpha: 1)
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(titleLabel)
+
+        closeBtn.title = "✕"
+        closeBtn.isBordered = false; closeBtn.bezelStyle = .inline
+        closeBtn.font = NSFont.systemFont(ofSize: 11)
+        closeBtn.contentTintColor = NSColor(calibratedWhite: 0.4, alpha: 1)
+        closeBtn.target = self; closeBtn.action = #selector(doClose)
+        closeBtn.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(closeBtn)
+
+        titleSep.wantsLayer = true
+        titleSep.layer?.backgroundColor = NSColor(calibratedWhite: 1, alpha: 0.07).cgColor
+        titleSep.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(titleSep)
+
+        // Status
+        statusDot.wantsLayer = true
+        statusDot.layer?.cornerRadius = 4
+        statusDot.layer?.backgroundColor = NSColor.systemGray.cgColor
+        statusDot.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(statusDot)
+
+        statusLabel.font = NSFont.systemFont(ofSize: 10)
+        statusLabel.textColor = .secondaryLabelColor
+        statusLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(statusLabel)
+
+        // Buttons
+        pickBtn.title = "🎯  Element wählen"
+        pickBtn.bezelStyle = .rounded; pickBtn.isEnabled = false
+        pickBtn.target = self; pickBtn.action = #selector(startPicking)
+        pickBtn.font = NSFont.systemFont(ofSize: 11)
+        pickBtn.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(pickBtn)
+
+        relaunchBtn.title = "⊕  Debug-Chrome öffnen"
+        relaunchBtn.bezelStyle = .rounded; relaunchBtn.isHidden = true
+        relaunchBtn.target = self; relaunchBtn.action = #selector(doRelaunch)
+        relaunchBtn.font = NSFont.systemFont(ofSize: 10)
+        relaunchBtn.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(relaunchBtn)
+
+        // Preview
+        previewSep.wantsLayer = true
+        previewSep.layer?.backgroundColor = NSColor(calibratedWhite: 1, alpha: 0.06).cgColor
+        previewSep.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(previewSep)
+
+        previewLabel.font = NSFont.monospacedSystemFont(ofSize: 9, weight: .regular)
+        previewLabel.textColor = NSColor(calibratedWhite: 0.45, alpha: 1)
+        previewLabel.maximumNumberOfLines = 4; previewLabel.lineBreakMode = .byTruncatingTail
+        previewLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(previewLabel)
+
+        feedbackLabel.font = NSFont.systemFont(ofSize: 10.5, weight: .medium)
+        feedbackLabel.textColor = .systemGreen; feedbackLabel.isHidden = true
+        feedbackLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(feedbackLabel)
+
+        NSLayoutConstraint.activate([
+            // Title bar
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+            closeBtn.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
+            closeBtn.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
+            closeBtn.widthAnchor.constraint(equalToConstant: 18),
+            titleSep.leadingAnchor.constraint(equalTo: leadingAnchor),
+            titleSep.trailingAnchor.constraint(equalTo: trailingAnchor),
+            titleSep.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 7),
+            titleSep.heightAnchor.constraint(equalToConstant: 1),
+            // Status
+            statusDot.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            statusDot.topAnchor.constraint(equalTo: titleSep.bottomAnchor, constant: 10),
+            statusDot.widthAnchor.constraint(equalToConstant: 7),
+            statusDot.heightAnchor.constraint(equalToConstant: 7),
+            statusLabel.leadingAnchor.constraint(equalTo: statusDot.trailingAnchor, constant: 6),
+            statusLabel.centerYAnchor.constraint(equalTo: statusDot.centerYAnchor),
+            statusLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            // Buttons
+            pickBtn.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            pickBtn.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            pickBtn.topAnchor.constraint(equalTo: statusDot.bottomAnchor, constant: 10),
+            relaunchBtn.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            relaunchBtn.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            relaunchBtn.topAnchor.constraint(equalTo: pickBtn.bottomAnchor, constant: 5),
+            // Preview
+            previewSep.leadingAnchor.constraint(equalTo: leadingAnchor),
+            previewSep.trailingAnchor.constraint(equalTo: trailingAnchor),
+            previewSep.topAnchor.constraint(equalTo: relaunchBtn.bottomAnchor, constant: 8),
+            previewSep.heightAnchor.constraint(equalToConstant: 1),
+            previewLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            previewLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            previewLabel.topAnchor.constraint(equalTo: previewSep.bottomAnchor, constant: 7),
+            feedbackLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            feedbackLabel.topAnchor.constraint(equalTo: previewLabel.bottomAnchor, constant: 6),
+        ])
+    }
+
+    // MARK: - Connection
+
+    func connect() {
+        isConnected = false
+        tabSearchTimer?.invalidate(); tabSearchTimer = nil
+        setStatus("Verbinde...", color: .systemOrange)
+        pickBtn.isEnabled = false
+        relaunchBtn.isHidden = true
+        cdp.isAvailable { [weak self] available in
+            guard let self = self else { return }
+            if available {
+                self.connectToTab()
+            } else {
+                self.cdp.launchChrome(onStatus: { [weak self] msg in
+                    self?.setStatus(msg, color: .systemOrange)
+                }) { [weak self] in self?.connectToTab() }
+            }
+        }
+    }
+
+    func disconnect() {
+        pollTimer?.invalidate(); pollTimer = nil
+        tabSearchTimer?.invalidate(); tabSearchTimer = nil
+        isConnected = false
+        let cleanup = "window.__qtPickerActive = false; document.querySelectorAll('*').forEach(function(el){el.style.outline='';el.style.outlineOffset='';}); void 0;"
+        cdp.evaluate(cleanup) { [weak self] _ in self?.cdp.disconnect() }
+    }
+
+    private func connectToTab() {
+        cdp.getActiveTabWS { [weak self] wsURL in
+            guard let self = self else { return }
+            if let wsURL = wsURL {
+                self.doConnect(to: wsURL)
+            } else {
+                // No real web tab found — create a blank one automatically
+                self.setStatus("Öffne neuen Tab...", color: .systemOrange)
+                self.cdp.createBlankTab { [weak self] newWS in
+                    guard let self = self else { return }
+                    if let newWS = newWS {
+                        // Connected to about:blank — user can now navigate to any site
+                        self.setStatus("Navigiere zur Webseite", color: .systemOrange)
+                        self.doConnect(to: newWS)
+                    } else {
+                        self.setStatus("Kein Debug-Chrome — Tab öffnen", color: .systemRed)
+                        self.relaunchBtn.isHidden = false
+                    }
+                }
+            }
+        }
+    }
+
+    private func doConnect(to wsURL: String) {
+        tabSearchTimer?.invalidate(); tabSearchTimer = nil
+        relaunchBtn.isHidden = true
+        cdp.connect(wsURL: wsURL) { [weak self] success in
+            guard let self = self else { return }
+            if success {
+                self.isConnected = true
+                self.setStatus("Chrome verbunden", color: .systemGreen)
+                self.pickBtn.isEnabled = true
+            } else {
+                self.setStatus("Verbindung fehlgeschlagen", color: .systemRed)
+                self.scheduleTabSearch()
+            }
+        }
+    }
+
+    private func scheduleTabSearch() {
+        tabSearchTimer?.invalidate()
+        tabSearchTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
+            guard let self = self, !self.isConnected else { return }
+            self.connectToTab()
+        }
+    }
+
+    @objc private func doRelaunch() {
+        connect()
+    }
+
+    private func setStatus(_ text: String, color: NSColor) {
+        statusLabel.stringValue = text
+        statusDot.layer?.backgroundColor = color.cgColor
+    }
+
+    @objc private func doClose() { onClose?() }
+
+    // MARK: - Picker
+
+    @objc private func startPicking() {
+        pickBtn.title = "⏳  Warte auf Klick..."; pickBtn.isEnabled = false
+        previewLabel.stringValue = ""; feedbackLabel.isHidden = true
+        cdp.evaluate("window.__qtPickedHTML = null; window.__qtPickerActive = false; void 0;") { _ in }
+        let pickerJS = """
+        (function() {
+          if (window.__qtPickerActive) return 'already_active';
+          window.__qtPickerActive = true; window.__qtPickedHTML = null;
+          var last = null;
+          function over(e) {
+            if (last && last !== e.target) { last.style.outline=''; last.style.outlineOffset=''; }
+            last = e.target; last.style.outline='2px solid #4A90D9'; last.style.outlineOffset='-2px';
+          }
+          function out(e) { if (e.target===last){e.target.style.outline='';e.target.style.outlineOffset='';} }
+          function pick(e) {
+            e.preventDefault(); e.stopPropagation();
+            if (last){last.style.outline='';last.style.outlineOffset='';}
+            window.__qtPickedHTML=e.target.outerHTML; window.__qtPickerActive=false;
+            document.removeEventListener('mouseover',over,true);
+            document.removeEventListener('mouseout',out,true);
+            document.removeEventListener('click',pick,true);
+          }
+          document.addEventListener('mouseover',over,true);
+          document.addEventListener('mouseout',out,true);
+          document.addEventListener('click',pick,true);
+          return 'started';
+        })();
+        """
+        cdp.evaluate(pickerJS) { [weak self] _ in
+            self?.pollTimer?.invalidate()
+            self?.pollTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
+                self?.cdp.evaluate("typeof window.__qtPickedHTML!=='undefined'&&window.__qtPickedHTML!==null?window.__qtPickedHTML:null") { [weak self] result in
+                    guard let self = self,
+                          let inner = (result?["result"] as? [String: Any]),
+                          let val = inner["value"] as? String, !val.isEmpty else { return }
+                    self.pollTimer?.invalidate(); self.pollTimer = nil
+                    DispatchQueue.main.async { self.onHTMLPicked(val) }
+                }
+            }
+        }
+    }
+
+    private func onHTMLPicked(_ html: String) {
+        pickBtn.title = "🎯  Element wählen"; pickBtn.isEnabled = true
+        previewLabel.stringValue = String(html.prefix(300))
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(html, forType: .string)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            let src = CGEventSource(stateID: .hidSystemState)
+            let vDown = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: true)
+            let vUp   = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: false)
+            vDown?.flags = .maskCommand; vUp?.flags = .maskCommand
+            vDown?.post(tap: .cghidEventTap); vUp?.post(tap: .cghidEventTap)
+        }
+        feedbackLabel.stringValue = "✓ Eingefügt!"; feedbackLabel.isHidden = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.feedbackLabel.isHidden = true
+        }
+    }
+
+    deinit { pollTimer?.invalidate(); tabSearchTimer?.invalidate(); cdp.disconnect() }
 }
 
 // MARK: - Split Container
@@ -10772,7 +11221,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let gitDefaultRatioH: CGFloat = 0.30   // factory default: bottom panel
     var settingsOverlay: SettingsOverlay?
     var commandPalette: CommandPaletteView?
-    var htmlPickerPanel: HTMLPickerPanel?
+    var webPickerSidebarView: WebPickerSidebarView?
+    var webPickerRightDivider: GitPanelDividerView?
     var helpViewer: HelpViewer?
     var perfOverlay: DiagnosticsOverlay?
     var parserOverlay: DiagnosticsOverlay?
@@ -10911,7 +11361,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Window — positioned under tray icon, restore saved size
         let savedW = UserDefaults.standard.double(forKey: "windowWidth")
         let savedH = UserDefaults.standard.double(forKey: "windowHeight")
-        let w: CGFloat = savedW > 100 ? CGFloat(savedW) : 720
+        let w: CGFloat = savedW > 100 ? CGFloat(savedW) : 860
         let h: CGFloat = savedH > 100 ? CGFloat(savedH) : 480
         let frame = NSRect(x: 0, y: 0, width: w, height: h)
 
@@ -10976,6 +11426,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         headerView.onSplitVertical = { [weak self] in self?.toggleSplit(vertical: true) }
         headerView.onSplitHorizontal = { [weak self] in self?.toggleSplit(vertical: false) }
         headerView.onGitToggle = { [weak self] in self?.toggleGitPanel() }
+        headerView.onWebPickerToggle = { [weak self] in self?.toggleWebPicker() }
         headerView.onDoubleClick = { [weak self] in self?.toggleFullscreen() }
 
         window.contentView?.addSubview(headerView)
@@ -11491,7 +11942,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             for tv in termViews { tv.userCursorStyle = 0; tv.updateFontSize(10.0) }
 
             // 6. Reset window size/position and center under tray icon
-            let defaultSize = NSSize(width: 720, height: 480)
+            let defaultSize = NSSize(width: 860, height: 480)
             var newFrame = window.frame
             newFrame.size = defaultSize
             // Center under tray icon
@@ -11758,13 +12209,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
-    func toggleHTMLPicker() {
-        if let p = htmlPickerPanel, p.isVisible {
-            p.close()
-            htmlPickerPanel = nil
-            return
+    func toggleWebPicker() {
+        if webPickerSidebarView != nil {
+            hideWebPickerSidebar()
+        } else {
+            showWebPickerSidebar()
         }
-        // Show one-time Safari setup hint
+    }
+
+    private func showWebPickerSidebar() {
+        guard activeTab >= 0, activeTab < splitContainers.count else { return }
+        guard let superview = splitContainers[activeTab].superview else { return }
+
+        // Safari hint
         if UserDefaults.standard.integer(forKey: "htmlPickerBrowser") == 1 &&
            !UserDefaults.standard.bool(forKey: "htmlPickerSafariHintShown") {
             UserDefaults.standard.set(true, forKey: "htmlPickerSafariHintShown")
@@ -11773,10 +12230,61 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 badgeColor: NSColor(calibratedRed: 0.3, green: 0.5, blue: 0.9, alpha: 1.0),
                 identifier: "safariHintToast")
         }
-        let panel = HTMLPickerPanel()
-        htmlPickerPanel = panel
-        panel.connect()
-        panel.makeKeyAndOrderFront(nil)
+
+        let view = WebPickerSidebarView()
+        view.onClose = { [weak self] in self?.toggleWebPicker() }
+        view.alphaValue = 0
+        superview.addSubview(view)
+        webPickerSidebarView = view
+
+        // Only need our own vertical divider when git is NOT in .right (otherwise reuse git's)
+        let pos = activeTab < tabGitPositions.count ? tabGitPositions[activeTab] : .none
+        if pos != .right {
+            let div = GitPanelDividerView()
+            div.isVertical = true
+            div.wantsLayer = true
+            div.layer?.backgroundColor = GitPanelDividerView.normalColor
+            div.alphaValue = 0
+            div.onDrag = { [weak self] delta in self?.handleWebPickerDividerDrag(delta) }
+            superview.addSubview(div)
+            webPickerRightDivider = div
+        }
+
+        layoutGitPanel()
+        headerView.setWebPickerActive(true)
+
+        NSAnimationContext.runAnimationGroup({ ctx in
+            ctx.duration = 0.2
+            view.animator().alphaValue = 1
+            webPickerRightDivider?.animator().alphaValue = 1
+        })
+        view.connect()
+    }
+
+    private func hideWebPickerSidebar() {
+        webPickerSidebarView?.disconnect()
+        NSAnimationContext.runAnimationGroup({ ctx in
+            ctx.duration = 0.15
+            self.webPickerSidebarView?.animator().alphaValue = 0
+            self.webPickerRightDivider?.animator().alphaValue = 0
+        }, completionHandler: { [weak self] in
+            self?.webPickerSidebarView?.removeFromSuperview()
+            self?.webPickerSidebarView = nil
+            self?.webPickerRightDivider?.removeFromSuperview()
+            self?.webPickerRightDivider = nil
+            self?.headerView.setWebPickerActive(false)
+            self?.layoutGitPanel()
+        })
+    }
+
+    func handleWebPickerDividerDrag(_ delta: CGFloat) {
+        guard activeTab >= 0, activeTab < tabGitRatiosV.count else { return }
+        let tf = termFrame()
+        var ratio = tabGitRatiosV[activeTab]
+        ratio += (-delta / tf.width)
+        ratio = max(0.15, min(0.55, ratio))
+        tabGitRatiosV[activeTab] = ratio
+        layoutGitPanel()
     }
 
     // MARK: - Git Panel
@@ -11858,35 +12366,73 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let container = splitContainers[activeTab]
         let tf = termFrame()
 
-        let pos = activeTab < tabGitPositions.count ? tabGitPositions[activeTab] : .none
-        let panel = activeTab < tabGitPanels.count ? tabGitPanels[activeTab] : nil
-        let divider = activeTab < tabGitDividers.count ? tabGitDividers[activeTab] : nil
-        let ratio = activeTab < tabGitRatios.count ? tabGitRatios[activeTab] : gitDefaultRatioH
+        let pos     = activeTab < tabGitPositions.count ? tabGitPositions[activeTab] : .none
+        let gitPanel  = activeTab < tabGitPanels.count ? tabGitPanels[activeTab] : nil
+        let gitDiv    = activeTab < tabGitDividers.count ? tabGitDividers[activeTab] : nil
+        let ratio     = activeTab < tabGitRatios.count ? tabGitRatios[activeTab] : gitDefaultRatioH
+        let picker    = webPickerSidebarView
         let divThick: CGFloat = 2
+        let pickerFixedH: CGFloat = 180   // HTML picker takes a fixed 180px at top of right column
 
-        if pos == .none || panel == nil {
-            container.frame = tf
-            return
+        // ── Determine right sidebar ──────────────────────────────────────────
+        let hasGitRight   = pos == .right && gitPanel != nil
+        let hasPickerRight = picker != nil
+        let hasRight = hasGitRight || hasPickerRight
+
+        // Right column width: prefer git's ratio; fall back to saved V-ratio for picker-only
+        let rightRatio: CGFloat
+        if hasGitRight {
+            rightRatio = ratio
+        } else if hasPickerRight {
+            rightRatio = activeTab < tabGitRatiosV.count ? tabGitRatiosV[activeTab] : gitDefaultRatioV
+        } else {
+            rightRatio = 0
+        }
+        let rightW  = hasRight ? tf.width * rightRatio : 0
+        let termW   = tf.width - (hasRight ? rightW + divThick : 0)
+        let sidebarX = tf.origin.x + termW + divThick
+
+        // ── Bottom git (does not affect horizontal layout) ───────────────────
+        let hasBottom = pos == .bottom && gitPanel != nil
+        let bottomH   = hasBottom ? tf.height * ratio : 0
+        let bottomDiv: CGFloat = hasBottom ? divThick : 0
+
+        let termH = tf.height - bottomH - bottomDiv
+        let termY = tf.origin.y + bottomH + bottomDiv
+
+        container.frame = NSRect(x: tf.origin.x, y: termY, width: termW, height: termH)
+
+        if hasBottom {
+            gitPanel?.isHorizontal = true
+            gitDiv?.isVertical = false
+            gitPanel?.frame = NSRect(x: tf.origin.x, y: tf.origin.y, width: termW, height: bottomH)
+            gitDiv?.frame   = NSRect(x: tf.origin.x, y: tf.origin.y + bottomH, width: termW, height: divThick)
         }
 
-        divider?.isVertical = (pos == .right)
-        panel?.isHorizontal = (pos == .bottom)
+        // ── Right sidebar vertical divider ───────────────────────────────────
+        if hasRight {
+            if hasGitRight {
+                gitDiv?.isVertical = true
+                gitDiv?.frame = NSRect(x: tf.origin.x + termW, y: tf.origin.y, width: divThick, height: tf.height)
+            } else {
+                webPickerRightDivider?.frame = NSRect(x: tf.origin.x + termW, y: tf.origin.y, width: divThick, height: tf.height)
+            }
+        }
 
-        switch pos {
-        case .right:
-            let gitW = tf.width * ratio
-            let termW = tf.width - gitW - divThick
-            container.frame = NSRect(x: tf.origin.x, y: tf.origin.y, width: termW, height: tf.height)
-            divider?.frame = NSRect(x: tf.origin.x + termW, y: tf.origin.y, width: divThick, height: tf.height)
-            panel?.frame = NSRect(x: tf.origin.x + termW + divThick, y: tf.origin.y, width: gitW, height: tf.height)
-        case .bottom:
-            let gitH = tf.height * ratio
-            let termH = tf.height - gitH - divThick
-            container.frame = NSRect(x: tf.origin.x, y: tf.origin.y + gitH + divThick, width: tf.width, height: termH)
-            divider?.frame = NSRect(x: tf.origin.x, y: tf.origin.y + gitH, width: tf.width, height: divThick)
-            panel?.frame = NSRect(x: tf.origin.x, y: tf.origin.y, width: tf.width, height: gitH)
-        case .none:
-            break
+        // ── Right sidebar content ────────────────────────────────────────────
+        if hasGitRight {
+            gitPanel?.isHorizontal = false
+            if let pv = picker {
+                // Both: picker on top (fixed height), git fills rest
+                let gitSideH = max(60, tf.height - pickerFixedH - 1)
+                pv.frame      = NSRect(x: sidebarX, y: tf.origin.y + gitSideH + 1, width: rightW, height: pickerFixedH)
+                gitPanel?.frame = NSRect(x: sidebarX, y: tf.origin.y, width: rightW, height: gitSideH)
+            } else {
+                gitPanel?.frame = NSRect(x: sidebarX, y: tf.origin.y, width: rightW, height: tf.height)
+            }
+        } else if let pv = picker {
+            // Only picker, no git on right
+            pv.frame = NSRect(x: sidebarX, y: tf.origin.y, width: rightW, height: tf.height)
         }
     }
 
@@ -12096,7 +12642,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 self.startUpdateDownload(release: release)
             },
             PaletteCommand(title: "Auto-Check Updates (\(onOff("autoCheckUpdates")))", shortcut: "") { [weak self] in self?.promptToggle("Auto-Check Updates", key: "autoCheckUpdates") },
-            PaletteCommand(title: "HTML Picker", shortcut: "") { [weak self] in self?.toggleHTMLPicker() },
+            PaletteCommand(title: "WebPicker", shortcut: "") { [weak self] in self?.toggleWebPicker() },
             PaletteCommand(title: "Git", shortcut: "") { [weak self] in self?.toggleGitPanel() },
         ]
     }
@@ -12650,7 +13196,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func resetWindowSize() {
-        let defaultSize = NSSize(width: 720, height: 480)
+        let defaultSize = NSSize(width: 860, height: 480)
         var newFrame = window.frame
         newFrame.size = defaultSize
         // Center under tray icon
