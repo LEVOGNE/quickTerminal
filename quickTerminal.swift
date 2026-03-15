@@ -14655,8 +14655,48 @@ class EditorLayoutManager: NSLayoutManager {
         super.processEditing(for: textStorage, edited: editMask,
                               range: newCharRange, changeInLength: delta,
                               invalidatedRange: invalidatedCharRange)
+        if let ev = gutterView?.superview as? EditorView, !ev.foldedLineStarts.isEmpty {
+            DispatchQueue.main.async { [weak self, weak textStorage] in
+                guard let self, let ts = textStorage else { return }
+                self.hideFoldedGlyphs(foldedLineStarts: ev.foldedLineStarts, in: ts)
+            }
+        }
         DispatchQueue.main.async { [weak self] in
             self?.gutterView?.needsDisplay = true
+        }
+    }
+
+    // setNotShownAttribute: available macOS 10.0+
+    // Hides glyphs for all folded ranges by iterating over each glyph index
+    func hideFoldedGlyphs(foldedLineStarts: Set<Int>, in textStorage: NSTextStorage) {
+        guard !foldedLineStarts.isEmpty else { return }
+        let str = textStorage.string as NSString
+        for lineStart in foldedLineStarts {
+            // Find the range to hide (from line end to block end)
+            let lineEndRange = str.range(of: "\n", options: [],
+                range: NSRange(location: lineStart, length: str.length - lineStart))
+            let lineEndChar = lineEndRange.location == NSNotFound ? str.length : lineEndRange.location
+            if lineEndChar >= str.length { continue }
+            // Find matching }
+            var depth = 0
+            var i = lineEndChar
+            var blockEnd = str.length
+            while i < str.length {
+                let c = str.character(at: i)
+                if c == 0x7B { depth += 1 }
+                else if c == 0x7D {
+                    depth -= 1
+                    if depth <= 0 { blockEnd = i + 1; break }
+                }
+                i += 1
+            }
+            let hideRange = NSRange(location: lineEndChar, length: blockEnd - lineEndChar)
+            let glyphRange = self.glyphRange(forCharacterRange: hideRange, actualCharacterRange: nil)
+            if glyphRange.location != NSNotFound && glyphRange.length > 0 {
+                for gi in glyphRange.location ..< NSMaxRange(glyphRange) {
+                    self.setNotShownAttribute(true, forGlyphAt: gi)
+                }
+            }
         }
     }
 }
@@ -14716,7 +14756,54 @@ class GutterView: NSView {
             let size = label.size(withAttributes: a)
             label.draw(at: NSPoint(x: bounds.width - size.width - 10, y: y), withAttributes: a)
 
+            // Draw fold triangle if line contains a block opener
+            if let ts = lm.textStorage {
+                let lineCharRange = lm.characterRange(forGlyphRange: lineGlyphRange, actualGlyphRange: nil)
+                let lineStr = (ts.string as NSString).substring(with: lineCharRange)
+                if lineStr.contains("{") {
+                    let triX: CGFloat = 4
+                    let triY: CGFloat = y + lineRect.height / 2 - 4
+                    ctx.setFillColor(numColor.cgColor)
+                    ctx.beginPath()
+                    ctx.move(to: CGPoint(x: triX, y: triY))
+                    ctx.addLine(to: CGPoint(x: triX + 8, y: triY + 4))
+                    ctx.addLine(to: CGPoint(x: triX, y: triY + 8))
+                    ctx.closePath()
+                    ctx.fillPath()
+                }
+            }
+
             lineNum += 1
+            glyphIdx = NSMaxRange(lineGlyphRange)
+        }
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        guard let lm = layoutManager,
+              let tc = lm.textContainers.first,
+              let tv = textView,
+              let ev = superview as? EditorView else { return }
+        let pt = convert(event.locationInWindow, from: nil)
+        // Only react to clicks in the triangle area (left 18px)
+        guard pt.x < 18 else { return }
+        let visibleRect = tv.visibleRect
+        let insetY = tv.textContainerInset.height
+        // Find which line was clicked
+        let clickY = pt.y + visibleRect.minY - insetY
+        let glyphRange = lm.glyphRange(forBoundingRect: visibleRect, in: tc)
+        var glyphIdx = glyphRange.location
+        while glyphIdx < NSMaxRange(glyphRange) {
+            var lineGlyphRange = NSRange()
+            let lineRect = lm.lineFragmentRect(forGlyphAt: glyphIdx, effectiveRange: &lineGlyphRange)
+            if clickY >= lineRect.minY && clickY < lineRect.maxY {
+                let charRange = lm.characterRange(forGlyphRange: lineGlyphRange, actualGlyphRange: nil)
+                // Check this line has a {
+                let lineStr = (lm.textStorage?.string as? NSString)?.substring(with: charRange) ?? ""
+                if lineStr.contains("{") {
+                    ev.toggleFold(atCharIndex: charRange.location)
+                }
+                return
+            }
             glyphIdx = NSMaxRange(lineGlyphRange)
         }
     }
@@ -14941,6 +15028,9 @@ class EditorView: NSView, NSTextViewDelegate {
     }
 
     var useTabs: Bool = true
+
+    // ── Code folding state ────────────────────────────────────────────────
+    private(set) var foldedLineStarts: Set<Int> = []  // char indices of folded line starts
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -15230,6 +15320,74 @@ class EditorView: NSView, NSTextViewDelegate {
         var ranges   = textView.selectedRanges
         ranges.append(NSValue(range: NSRange(location: charIdx, length: 0)))
         textView.selectedRanges = ranges
+    }
+
+    // ── Accessors for folding ───────────────────────────────────────────────
+    var editorGutterView: GutterView { gutterView }
+    var editorLayoutManager: EditorLayoutManager { layoutMgr }
+
+    // ── Code Folding ───────────────────────────────────────────────────────
+
+    func toggleFold(atCharIndex lineStartChar: Int) {
+        let str = textView.string as NSString
+        guard lineStartChar < str.length else { return }
+
+        // Find end of this line
+        let lineEndRange = str.range(of: "\n",
+            options: [],
+            range: NSRange(location: lineStartChar, length: str.length - lineStartChar))
+        let lineEndChar = lineEndRange.location == NSNotFound ? str.length : lineEndRange.location
+
+        // Find block end (matching closing brace)
+        let blockEndChar = findBlockEnd(from: lineEndChar, in: str)
+        guard blockEndChar > lineEndChar else { return }
+        let foldRange = NSRange(location: lineEndChar, length: blockEndChar - lineEndChar)
+
+        if foldedLineStarts.contains(lineStartChar) {
+            // Unfold: make glyphs visible again
+            foldedLineStarts.remove(lineStartChar)
+            layoutMgr.invalidateGlyphs(forCharacterRange: foldRange,
+                                        changeInLength: 0, actualCharacterRange: nil)
+            layoutMgr.invalidateLayout(forCharacterRange: foldRange, actualCharacterRange: nil)
+        } else {
+            // Fold: hide glyphs
+            foldedLineStarts.insert(lineStartChar)
+            layoutMgr.invalidateGlyphs(forCharacterRange: foldRange,
+                                        changeInLength: 0, actualCharacterRange: nil)
+            layoutMgr.invalidateLayout(forCharacterRange: foldRange, actualCharacterRange: nil)
+        }
+        gutterView.needsDisplay = true
+    }
+
+    private func findBlockEnd(from start: Int, in str: NSString) -> Int {
+        var depth = 0
+        var i = start
+        var inString = false
+        var inLineComment = false
+        while i < str.length {
+            let c = str.character(at: i)
+            if inLineComment {
+                if c == 0x0A { inLineComment = false }
+            } else if inString {
+                if c == 0x22 { inString = false }  // closing "
+                else if c == 0x5C { i += 1 }       // skip escaped char
+            } else {
+                if c == 0x2F && i + 1 < str.length && str.character(at: i + 1) == 0x2F {
+                    inLineComment = true
+                } else if c == 0x22 {
+                    inString = true
+                } else if c == 0x7B {  // {
+                    depth += 1
+                } else if c == 0x7D {  // }
+                    if depth > 0 {
+                        depth -= 1
+                        if depth == 0 { return i + 1 }
+                    }
+                }
+            }
+            i += 1
+        }
+        return str.length
     }
 }
 
