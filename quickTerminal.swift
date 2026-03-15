@@ -14998,7 +14998,7 @@ class EditorView: NSView, NSTextViewDelegate {
 
     private let gutterView    = GutterView()
     private let scrollView    = NSScrollView()
-    let textView              = NSTextView()
+    var textView: NSTextView!
     private let footer        = EditorFooter()
     private let searchPanel   = EditorSearchPanel()
     private var searchVisible = false
@@ -15038,6 +15038,8 @@ class EditorView: NSView, NSTextViewDelegate {
 
         storage.addLayoutManager(layoutMgr)
         layoutMgr.addTextContainer(textContainer)
+        // Wire textView into the custom storage chain (must use this init)
+        textView = NSTextView(frame: .zero, textContainer: textContainer)
         textContainer.widthTracksTextView = true
         textContainer.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
                                              height: CGFloat.greatestFiniteMagnitude)
