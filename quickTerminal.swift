@@ -14230,8 +14230,7 @@ enum TabType { case terminal, editor }
 // ── Syntax Highlighting ────────────────────────────────────────────────────
 
 enum TokenType {
-    case keyword, string, comment, number, operator_, type_, identifier
-    case punctuation, literal, attribute, plain
+    case keyword, string, comment, number, operator_, type_, attribute, plain
 }
 
 struct SyntaxToken {
@@ -14288,14 +14287,30 @@ struct SyntaxHighlighter {
         }
     }
 
+    // ── Helper: cached NSRegularExpression ────────────────────────────────
+    private static var rxCache: [String: NSRegularExpression] = [:]
+    private static let rxCacheLock = NSLock()
+
+    private static func cachedRegex(pattern: String, options: NSRegularExpression.Options) -> NSRegularExpression? {
+        let key = "\(options.rawValue):\(pattern)"
+        rxCacheLock.lock()
+        defer { rxCacheLock.unlock() }
+        if let cached = rxCache[key] { return cached }
+        guard let rx = try? NSRegularExpression(pattern: pattern, options: options) else { return nil }
+        rxCache[key] = rx
+        return rx
+    }
+
     // ── Helper: apply regex patterns ───────────────────────────────────────
     private static func tokens(source: String,
-                                patterns: [(String, TokenType)]) -> [SyntaxToken] {
+                                patterns: [(String, TokenType)],
+                                options: NSRegularExpression.Options = []) -> [SyntaxToken] {
         var result: [SyntaxToken] = []
+        let ns = source as NSString
+        let fullRange = NSRange(location: 0, length: ns.length)
         for (pattern, type_) in patterns {
-            guard let rx = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) else { continue }
-            let ns = source as NSString
-            let matches = rx.matches(in: source, range: NSRange(location: 0, length: ns.length))
+            guard let rx = cachedRegex(pattern: pattern, options: options) else { continue }
+            let matches = rx.matches(in: source, range: fullRange)
             for m in matches {
                 let r = m.numberOfRanges > 1 ? m.range(at: 1) : m.range
                 if r.location != NSNotFound { result.append(SyntaxToken(range: r, type: type_)) }
@@ -14326,7 +14341,7 @@ struct SyntaxHighlighter {
             ("@\\w+",                               .attribute),
             ("\\b[0-9]+(?:\\.[0-9]+)?\\b",          .number),
             ("[+\\-*/=<>!&|^~%?:,;.()\\[\\]{}]+",  .operator_),
-        ])
+        ], options: [.dotMatchesLineSeparators])
     }
 
     private static func tokenizeJSON(_ s: String) -> [SyntaxToken] {
@@ -14348,7 +14363,7 @@ struct SyntaxHighlighter {
             ("\\b(true|false|null|yes|no)\\b",     .keyword),
             ("\\b-?[0-9]+(?:\\.[0-9]+)?\\b",       .number),
             ("^---",                                .operator_),
-        ])
+        ], options: [.anchorsMatchLines])
     }
 
     private static func tokenizeJS(_ s: String) -> [SyntaxToken] {
@@ -14362,7 +14377,7 @@ struct SyntaxHighlighter {
             (kw,                                    .keyword),
             ("\\b[A-Z][A-Za-z0-9_]*\\b",           .type_),
             ("\\b[0-9]+(?:\\.[0-9]+)?\\b",          .number),
-        ])
+        ], options: [.dotMatchesLineSeparators])
     }
 
     private static func tokenizePython(_ s: String) -> [SyntaxToken] {
@@ -14377,7 +14392,7 @@ struct SyntaxHighlighter {
             ("@\\w+",                               .attribute),
             ("\\b[A-Z][A-Za-z0-9_]*\\b",           .type_),
             ("\\b[0-9]+(?:\\.[0-9]+)?\\b",          .number),
-        ])
+        ], options: [.dotMatchesLineSeparators])
     }
 
     private static func tokenizeShell(_ s: String) -> [SyntaxToken] {
@@ -14387,7 +14402,7 @@ struct SyntaxHighlighter {
             ("\"(?:[^\"\\\\]|\\\\.)*\"",            .string),
             ("'[^']*'",                             .string),
             (kw,                                    .keyword),
-            ("\\$[\\w{][\\w}]*",                   .type_),
+            ("\\$\\{[\\w@#?!*-]+\\}|\\$[\\w@#?!*]+",  .type_),
             ("\\b[0-9]+\\b",                        .number),
         ])
     }
@@ -14404,7 +14419,7 @@ struct SyntaxHighlighter {
             ("\\[[^\\]]+\\]\\([^)]+\\)",            .attribute),
             ("^[-*+] ",                             .operator_),
             ("^\\d+\\. ",                           .operator_),
-        ])
+        ], options: [.anchorsMatchLines])
     }
 
     private static func tokenizeHTML(_ s: String) -> [SyntaxToken] {
@@ -14416,7 +14431,7 @@ struct SyntaxHighlighter {
             ("'[^']*'",                             .string),
             (">",                                   .keyword),
             ("&[A-Za-z0-9#]+;",                    .number),
-        ])
+        ], options: [.dotMatchesLineSeparators])
     }
 
     private static func tokenizeCSS(_ s: String) -> [SyntaxToken] {
@@ -14428,7 +14443,7 @@ struct SyntaxHighlighter {
             ("#[0-9A-Fa-f]{3,8}\\b",               .number),
             ("\\b[0-9]+(?:\\.[0-9]+)?(?:px|em|rem|%|vh|vw|pt|s|ms)?\\b", .number),
             ("@[A-Za-z-]+",                         .attribute),
-        ])
+        ], options: [.dotMatchesLineSeparators])
     }
 
     private static func tokenizeGo(_ s: String) -> [SyntaxToken] {
@@ -14441,7 +14456,7 @@ struct SyntaxHighlighter {
             (kw,                                    .keyword),
             ("\\b[A-Z][A-Za-z0-9_]*\\b",           .type_),
             ("\\b[0-9]+(?:\\.[0-9]+)?\\b",          .number),
-        ])
+        ], options: [.dotMatchesLineSeparators])
     }
 
     private static func tokenizeRust(_ s: String) -> [SyntaxToken] {
@@ -14449,14 +14464,14 @@ struct SyntaxHighlighter {
         return tokens(source: s, patterns: [
             ("//[^\n]*",                            .comment),
             ("/\\*[\\s\\S]*?\\*/",                  .comment),
-            ("r#?\"[\\s\\S]*?\"#?",                .string),
+            ("r#{0,5}\"[\\s\\S]*?\"#{0,5}",        .string),
             ("\"(?:[^\"\\\\]|\\\\.)*\"",            .string),
             (kw,                                    .keyword),
             ("#\\[.*?\\]",                          .attribute),
             ("\\b[A-Z][A-Za-z0-9_]*\\b",           .type_),
             ("\\b[0-9]+(?:\\.[0-9]+)?\\b",          .number),
             ("'[a-z_]+",                            .type_),
-        ])
+        ], options: [.dotMatchesLineSeparators])
     }
 
     private static func tokenizeRuby(_ s: String) -> [SyntaxToken] {
@@ -14482,7 +14497,7 @@ struct SyntaxHighlighter {
         case .type_:      return dark ? NSColor(calibratedRed: 0.40, green: 0.80, blue: 0.95, alpha: 1) : NSColor(calibratedRed: 0.05, green: 0.40, blue: 0.65, alpha: 1)
         case .attribute:  return dark ? NSColor(calibratedRed: 0.95, green: 0.75, blue: 0.40, alpha: 1) : NSColor(calibratedRed: 0.65, green: 0.40, blue: 0.05, alpha: 1)
         case .operator_:  return dark ? NSColor(calibratedWhite: 0.65, alpha: 1) : NSColor(calibratedWhite: 0.40, alpha: 1)
-        case .identifier, .punctuation, .literal, .plain:
+        case .plain:
             return dark ? NSColor(calibratedWhite: 0.90, alpha: 1) : NSColor(calibratedWhite: 0.10, alpha: 1)
         }
     }
