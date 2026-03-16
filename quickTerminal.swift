@@ -14254,6 +14254,9 @@ class EditorView: NSView {
     }
 }
 
+enum EditorInputMode { case normal, nano, vim }
+enum VimSubMode      { case normal, insert }
+
 // MARK: - Tab Types
 
 enum TabType {
@@ -14268,6 +14271,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var termViews: [TerminalView?] = []
     var tabTypes: [TabType] = []
     var tabEditorViews: [EditorView?] = []
+    var tabEditorModes: [EditorInputMode] = []
     var splitContainers: [SplitContainer] = []
     var activeTab = 0
     var statusItem: NSStatusItem!
@@ -14776,6 +14780,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         termViews.append(tv)
         tabTypes.append(.terminal)
         tabEditorViews.append(nil)
+        tabEditorModes.append(.normal)
         splitContainers.append(container)
         activeTab = termViews.count - 1
         container.alphaValue = 0
@@ -14822,6 +14827,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         termViews.append(nil)
         tabTypes.append(.editor)
         tabEditorViews.append(editorView)
+        tabEditorModes.append(.normal)
         splitContainers.append(placeholder)
         tabColors.append(NSColor(calibratedHue: CGFloat.random(in: 0...1),
                                   saturation: 0.65, brightness: 0.85, alpha: 1.0))
@@ -14862,6 +14868,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         splitContainers.remove(at: index)
         if index < tabTypes.count { tabTypes.remove(at: index) }
         if index < tabEditorViews.count { tabEditorViews.remove(at: index) }
+        if index < tabEditorModes.count { tabEditorModes.remove(at: index) }
         if index < tabColors.count { tabColors.remove(at: index) }
         if index < tabCustomNames.count { tabCustomNames.remove(at: index) }
         if index < tabGitPanels.count {
