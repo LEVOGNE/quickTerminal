@@ -14876,9 +14876,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard index >= 0 && index < termViews.count && termViews.count > 1,
               index < splitContainers.count else { return }
         let container = splitContainers[index]
+        // Remove editor view from hierarchy if this is an editor tab
+        if index < tabEditorViews.count, let ev = tabEditorViews[index] {
+            ev.removeFromSuperview()
+        }
         termViews.remove(at: index)
         splitContainers.remove(at: index)
         if index < tabTypes.count { tabTypes.remove(at: index) }
+        if index < tabEditorViews.count { tabEditorViews.remove(at: index) }
         if index < tabColors.count { tabColors.remove(at: index) }
         if index < tabCustomNames.count { tabCustomNames.remove(at: index) }
         if index < tabGitPanels.count {
