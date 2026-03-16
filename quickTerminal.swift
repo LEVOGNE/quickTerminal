@@ -14194,6 +14194,11 @@ class EditorView: NSView {
 
     private(set) var textView: NSTextView!
     private var scrollView: NSScrollView!
+    private var modeBar: NSView!
+    private var modeBarLabel: NSTextField!
+    var vimMode: VimSubMode = .normal
+    var vimYankBuffer: String = ""
+    var vimPendingColon: Bool = false
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -14203,7 +14208,9 @@ class EditorView: NSView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func setup() {
-        scrollView = NSScrollView(frame: bounds)
+        let modeBarH: CGFloat = 26
+        scrollView = NSScrollView(frame: NSRect(x: 0, y: modeBarH, width: bounds.width,
+                                                height: max(0, bounds.height - modeBarH)))
         scrollView.autoresizingMask = [.width, .height]
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = false
@@ -14235,6 +14242,31 @@ class EditorView: NSView {
         applyColors(bg: initialBG, fg: NSColor(calibratedRed: 0.85, green: 0.85, blue: 0.90, alpha: 1))
 
         scrollView.documentView = textView
+
+        // Mode bar (hidden by default — shown for nano/vim)
+        modeBar = NSView(frame: NSRect(x: 0, y: 0, width: bounds.width, height: modeBarH))
+        modeBar.wantsLayer = true
+        modeBar.layer?.backgroundColor = NSColor(calibratedWhite: 0.0, alpha: 0.35).cgColor
+        modeBar.autoresizingMask = [.width]
+        modeBar.isHidden = true
+
+        let sep2 = NSView(frame: NSRect(x: 0, y: modeBarH - 1, width: bounds.width, height: 1))
+        sep2.wantsLayer = true
+        sep2.layer?.backgroundColor = NSColor(calibratedWhite: 1.0, alpha: 0.1).cgColor
+        sep2.autoresizingMask = [.width]
+        modeBar.addSubview(sep2)
+
+        modeBarLabel = NSTextField(labelWithString: "")
+        modeBarLabel.font = NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
+        modeBarLabel.textColor = NSColor(calibratedWhite: 0.65, alpha: 1.0)
+        modeBarLabel.alignment = .center
+        modeBarLabel.translatesAutoresizingMaskIntoConstraints = false
+        modeBar.addSubview(modeBarLabel)
+        NSLayoutConstraint.activate([
+            modeBarLabel.centerXAnchor.constraint(equalTo: modeBar.centerXAnchor),
+            modeBarLabel.centerYAnchor.constraint(equalTo: modeBar.centerYAnchor),
+        ])
+        addSubview(modeBar)
     }
 
     func applyColors(bg: NSColor, fg: NSColor) {
@@ -14244,9 +14276,50 @@ class EditorView: NSView {
         textView?.insertionPointColor = fg
     }
 
+    func setInputMode(_ mode: EditorInputMode) {
+        switch mode {
+        case .normal:
+            modeBar.isHidden = true
+            textView.isEditable = true
+        case .nano:
+            modeBar.isHidden = false
+            modeBarLabel.stringValue = "^S Save   ^X Close   ^K Cut Line   ^U Paste"
+            modeBarLabel.textColor = NSColor(calibratedRed: 0.5, green: 0.85, blue: 0.5, alpha: 1.0)
+            textView.isEditable = true
+        case .vim:
+            modeBar.isHidden = false
+            updateVimModeBar()
+            // start in normal mode — disable direct text editing
+            setVimMode(.normal)
+        }
+        needsLayout = true
+    }
+
+    func setVimMode(_ vm: VimSubMode) {
+        vimMode = vm
+        textView.isEditable = (vm == .insert)
+        updateVimModeBar()
+    }
+
+    private func updateVimModeBar() {
+        switch vimMode {
+        case .normal:
+            modeBarLabel.stringValue = "── NORMAL ──"
+            modeBarLabel.textColor = NSColor(calibratedRed: 0.4, green: 0.7, blue: 1.0, alpha: 1.0)
+        case .insert:
+            modeBarLabel.stringValue = "── INSERT ──"
+            modeBarLabel.textColor = NSColor(calibratedRed: 0.4, green: 0.9, blue: 0.5, alpha: 1.0)
+        }
+    }
+
     override func layout() {
         super.layout()
         guard let sv = scrollView, let tv = textView else { return }
+        let modeBarH: CGFloat = modeBar?.isHidden == false ? 26 : 0
+        // Resize scrollView: top of view down to above modeBar
+        sv.frame = NSRect(x: 0, y: modeBarH, width: bounds.width,
+                          height: max(0, bounds.height - modeBarH))
+        modeBar?.frame.size.width = bounds.width
         let w = sv.contentSize.width
         tv.frame = NSRect(x: 0, y: 0, width: w,
                           height: max(tv.frame.height, sv.contentSize.height))
