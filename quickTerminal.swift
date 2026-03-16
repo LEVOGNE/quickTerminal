@@ -14461,7 +14461,7 @@ class EditorView: NSView {
         let lineText = text.substring(with: lineRange)
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(lineText, forType: .string)
-        tv.replaceCharacters(in: lineRange, with: "")
+        tv.insertText("", replacementRange: lineRange)
     }
 
     override func layout() {
