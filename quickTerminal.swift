@@ -14819,6 +14819,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         termViews.append(tv)
         tabTypes.append(.terminal)
+        tabEditorViews.append(nil)
         splitContainers.append(container)
         activeTab = termViews.count - 1
         container.alphaValue = 0
