@@ -14254,15 +14254,15 @@ class EditorView: NSView {
     }
 }
 
-enum EditorInputMode { case normal, nano, vim }
-enum VimSubMode      { case normal, insert }
-
 // MARK: - Tab Types
 
 enum TabType {
     case terminal
     case editor
 }
+
+enum EditorInputMode { case normal, nano, vim }
+enum VimSubMode { case normal, insert }
 
 // MARK: - App Delegate
 
