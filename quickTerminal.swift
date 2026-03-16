@@ -15476,6 +15476,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             oldContainer.alphaValue = 1
         })
 
+        // Show/hide editor views
+        for (i, ev) in tabEditorViews.enumerated() {
+            ev?.isHidden = (i != activeTab)
+        }
+
         // Show new tab's git panel
         if activeTab < tabGitPanels.count {
             tabGitPanels[activeTab]?.isHidden = false
@@ -15485,7 +15490,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         headerView.setGitActive(activeTab < tabGitPositions.count && tabGitPositions[activeTab] != .none)
         updateSplitButtonState()
 
-        if let tv = termViews[activeTab] { window.makeFirstResponder(tv) }
+        if activeTab < tabTypes.count, tabTypes[activeTab] == .editor {
+            window.makeFirstResponder(tabEditorViews[activeTab]?.textView)
+        } else if let tv = termViews[activeTab] {
+            window.makeFirstResponder(tv)
+        }
         clearSearchState()
         updateHeaderTabs()
         updateFooter()
