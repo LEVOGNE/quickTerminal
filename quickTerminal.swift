@@ -5373,10 +5373,16 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
     var onGitToggle: (() -> Void)?
     var onWebPickerToggle: (() -> Void)?
     var onSSHToggle: (() -> Void)?
+    var onFileOpen:   (() -> Void)?
+    var onFileSave:   (() -> Void)?
+    var onFileSaveAs: (() -> Void)?
 
     private var tabContainer = NSView()
     private let tabScrollView = NSScrollView()
     private var addBtn: HoverButton!
+    private var fileOpenBtn: HoverButton!
+    private var fileSaveBtn: HoverButton!
+    private var fileSaveAsBtn: HoverButton!
     private var splitVBtn: SplitIconButton!
     private var splitHBtn: SplitIconButton!
     private var gitBtn: HoverButton!
@@ -5436,6 +5442,36 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
         addBtn.translatesAutoresizingMaskIntoConstraints = false
         addSubview(addBtn)
 
+        // File operation buttons (shown only for editor tabs)
+        let fileGray    = NSColor(calibratedWhite: 0.5, alpha: 1.0)
+        let fileHover   = NSColor(calibratedRed: 0.35, green: 0.65, blue: 1.0, alpha: 1.0)
+        let fileHoverBg = NSColor(calibratedRed: 0.3, green: 0.55, blue: 1.0, alpha: 0.12)
+        let filePressedBg = NSColor(calibratedRed: 0.3, green: 0.55, blue: 1.0, alpha: 0.25)
+
+        fileOpenBtn = HoverButton(title: "Open", fontSize: 9, weight: .bold,
+            normalColor: fileGray, hoverColor: fileHover, hoverBg: fileHoverBg,
+            pressBg: filePressedBg, cornerRadius: 4)
+        fileOpenBtn.onClick = { [weak self] in self?.onFileOpen?() }
+        fileOpenBtn.translatesAutoresizingMaskIntoConstraints = false
+        fileOpenBtn.isHidden = true
+        addSubview(fileOpenBtn)
+
+        fileSaveBtn = HoverButton(title: "Save", fontSize: 9, weight: .bold,
+            normalColor: fileGray, hoverColor: fileHover, hoverBg: fileHoverBg,
+            pressBg: filePressedBg, cornerRadius: 4)
+        fileSaveBtn.onClick = { [weak self] in self?.onFileSave?() }
+        fileSaveBtn.translatesAutoresizingMaskIntoConstraints = false
+        fileSaveBtn.isHidden = true
+        addSubview(fileSaveBtn)
+
+        fileSaveAsBtn = HoverButton(title: "Save As", fontSize: 9, weight: .bold,
+            normalColor: fileGray, hoverColor: fileHover, hoverBg: fileHoverBg,
+            pressBg: filePressedBg, cornerRadius: 4)
+        fileSaveAsBtn.onClick = { [weak self] in self?.onFileSaveAs?() }
+        fileSaveAsBtn.translatesAutoresizingMaskIntoConstraints = false
+        fileSaveAsBtn.isHidden = true
+        addSubview(fileSaveAsBtn)
+
         // Buttons kept initialized (not added to view) so setGitActive/setSplitActive etc. don't crash
         splitVBtn = SplitIconButton(vertical: true)
         splitHBtn = SplitIconButton(vertical: false)
@@ -5454,9 +5490,24 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
 
         NSLayoutConstraint.activate([
             tabScrollView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
-            tabScrollView.trailingAnchor.constraint(equalTo: addBtn.leadingAnchor, constant: -4),
+            tabScrollView.trailingAnchor.constraint(equalTo: fileOpenBtn.leadingAnchor, constant: -4),
             tabScrollView.centerYAnchor.constraint(equalTo: centerYAnchor),
             tabScrollView.heightAnchor.constraint(equalToConstant: 24),
+
+            fileOpenBtn.trailingAnchor.constraint(equalTo: fileSaveBtn.leadingAnchor, constant: -4),
+            fileOpenBtn.centerYAnchor.constraint(equalTo: centerYAnchor),
+            fileOpenBtn.widthAnchor.constraint(equalToConstant: 34),
+            fileOpenBtn.heightAnchor.constraint(equalToConstant: 20),
+
+            fileSaveBtn.trailingAnchor.constraint(equalTo: fileSaveAsBtn.leadingAnchor, constant: -4),
+            fileSaveBtn.centerYAnchor.constraint(equalTo: centerYAnchor),
+            fileSaveBtn.widthAnchor.constraint(equalToConstant: 34),
+            fileSaveBtn.heightAnchor.constraint(equalToConstant: 20),
+
+            fileSaveAsBtn.trailingAnchor.constraint(equalTo: addBtn.leadingAnchor, constant: -6),
+            fileSaveAsBtn.centerYAnchor.constraint(equalTo: centerYAnchor),
+            fileSaveAsBtn.widthAnchor.constraint(equalToConstant: 50),
+            fileSaveAsBtn.heightAnchor.constraint(equalToConstant: 20),
 
             addBtn.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
             addBtn.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -5582,6 +5633,12 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
     func resetSplitButtons() {
         splitVBtn.setActive(false)
         splitHBtn.setActive(false)
+    }
+
+    func setFileButtonsVisible(_ visible: Bool) {
+        fileOpenBtn.isHidden = !visible
+        fileSaveBtn.isHidden = !visible
+        fileSaveAsBtn.isHidden = !visible
     }
 
     // MARK: Inline Tab Rename
@@ -14674,6 +14731,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         headerView.onGitToggle = { [weak self] in self?.toggleGitPanel() }
         headerView.onWebPickerToggle = { [weak self] in self?.toggleWebPicker() }
         headerView.onSSHToggle = { [weak self] in self?.toggleSSHManager() }
+        headerView.onFileOpen   = { [weak self] in self?.openEditorFile() }
+        headerView.onFileSave   = { [weak self] in self?.saveCurrentEditor() }
+        headerView.onFileSaveAs = { [weak self] in self?.saveCurrentEditorAs() }
         headerView.onDoubleClick = { [weak self] in self?.toggleFullscreen() }
 
         window.contentView?.addSubview(headerView)
@@ -14928,6 +14988,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         layoutGitPanel()
         saveSession()
     }
+
+    func openEditorFile() {}
+    func saveCurrentEditor() {}
+    func saveCurrentEditorAs() {}
 
     func createEditorTab() {
         let tf = termFrame()
@@ -15654,6 +15718,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         headerView.updateTabs(count: termViews.count, activeIndex: activeTab,
                               titles: titles, colors: tabColors)
+        let editorActive = activeTab < tabTypes.count && tabTypes[activeTab] == .editor
+        headerView.setFileButtonsVisible(editorActive)
     }
 
     func updateFooter() {
