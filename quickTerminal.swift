@@ -5357,6 +5357,7 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
 
     var onTabClicked: ((Int) -> Void)?
     var onAddTab: (() -> Void)?
+    var onAddEditorTab: (() -> Void)?
     var onCloseTab: ((Int) -> Void)?
     var onReorderTab: ((Int, Int) -> Void)?
     var onTabDoubleClicked: ((Int) -> Void)?
@@ -5415,7 +5416,17 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
             pressBg: NSColor(calibratedRed: 0.3, green: 0.55, blue: 1.0, alpha: 0.25),
             cornerRadius: 6)
         addBtn.hoverScale = 1.3
-        addBtn.onClick = { [weak self] in self?.onAddTab?() }
+        addBtn.onClick = { [weak self] in
+            guard let self = self else { return }
+            let menu = NSMenu()
+            let termItem = NSMenuItem(title: "Terminal", action: #selector(HeaderBarView._addTerminal), keyEquivalent: "")
+            termItem.target = self
+            let editorItem = NSMenuItem(title: "Text Editor", action: #selector(HeaderBarView._addEditor), keyEquivalent: "")
+            editorItem.target = self
+            menu.addItem(termItem)
+            menu.addItem(editorItem)
+            menu.popUp(positioning: nil, at: NSPoint(x: 0, y: self.addBtn.bounds.height + 4), in: self.addBtn)
+        }
         addBtn.translatesAutoresizingMaskIntoConstraints = false
         addSubview(addBtn)
 
@@ -5793,6 +5804,9 @@ class HeaderBarView: NSView, NSTextFieldDelegate {
             onReorderTab?(tabIndex, movedToSlot)
         }
     }
+
+    @objc private func _addTerminal() { onAddTab?() }
+    @objc private func _addEditor()   { onAddEditorTab?() }
 }
 
 // MARK: - Footer Bar
@@ -14567,6 +14581,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         headerView.autoresizingMask = [.width, .minYMargin]
         headerView.onTabClicked = { [weak self] index in self?.switchToTab(index) }
         headerView.onAddTab = { [weak self] in self?.addTab() }
+        headerView.onAddEditorTab = { [weak self] in self?.createEditorTab() }
         headerView.onCloseTab = { [weak self] index in self?.closeTab(index: index) }
         headerView.onReorderTab = { [weak self] from, to in self?.reorderTab(from: from, to: to) }
         headerView.onTabRenamed = { [weak self] index, name in
