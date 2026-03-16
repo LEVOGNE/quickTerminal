@@ -3729,21 +3729,6 @@ class TerminalView: NSView {
         lastKeystrokeTime = ProcessInfo.processInfo.systemUptime
         let flags = event.modifierFlags.intersection([.command, .option, .shift, .control])
         if flags.contains(.command) {
-            // Cmd+Arrow Left/Right → switch tabs
-            if event.keyCode == 123 { // Left arrow
-                if let d = NSApp.delegate as? AppDelegate {
-                    let prev = d.activeTab > 0 ? d.activeTab - 1 : d.termViews.count - 1
-                    d.switchToTab(prev)
-                }
-                return
-            }
-            if event.keyCode == 124 { // Right arrow
-                if let d = NSApp.delegate as? AppDelegate {
-                    let next = d.activeTab < d.termViews.count - 1 ? d.activeTab + 1 : 0
-                    d.switchToTab(next)
-                }
-                return
-            }
             // Cmd+⌥+1/2/3/4: Fenster-Presets (muss vor Cmd+1-3 Shell-Switch stehen)
             if flags.contains(.option) {
                 if let d = NSApp.delegate as? AppDelegate {
