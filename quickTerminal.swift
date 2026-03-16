@@ -15297,6 +15297,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         updateHeaderTabs()
         updateFooter()
+        // Apply initial mode (always .normal for new tabs)
+        editorView.setInputMode(.normal)
         saveSession()
     }
 
@@ -15933,6 +15935,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         clearSearchState()
         updateHeaderTabs()
+        // Restore editor input mode when switching to editor tab
+        if index < tabTypes.count, tabTypes[index] == .editor,
+           index < tabEditorModes.count, index < tabEditorViews.count,
+           let ev = tabEditorViews[index] {
+            ev.setInputMode(tabEditorModes[index])
+        }
         updateFooter()
     }
 
