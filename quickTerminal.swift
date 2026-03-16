@@ -4839,6 +4839,31 @@ class BorderlessWindow: NSWindow {
                 }
             }
 
+            // Vim mode key intercepts
+            if let d = NSApp.delegate as? AppDelegate,
+               d.activeTab < d.tabTypes.count, d.tabTypes[d.activeTab] == .editor,
+               d.activeTab < d.tabEditorModes.count, d.tabEditorModes[d.activeTab] == .vim,
+               d.activeTab < d.tabEditorViews.count,
+               let ev = d.tabEditorViews[d.activeTab] {
+                let vimFlags = event.modifierFlags.intersection([.command, .control, .option, .shift])
+                // Insert mode: only intercept Esc
+                if ev.vimMode == .insert {
+                    if event.keyCode == 53 {
+                        _ = ev.handleVimKey(event); return
+                    }
+                } else {
+                    // Normal mode: intercept bare keys (no modifiers or shift only)
+                    if vimFlags.isEmpty || vimFlags == .shift {
+                        if ev.vimPendingColon {
+                            let ch = event.charactersIgnoringModifiers ?? ""
+                            if ev.handleVimColonCommand(ch) { return }
+                        }
+                        if ev.handleVimTwoKeyOp(event) { return }
+                        if ev.handleVimKey(event) { return }
+                    }
+                }
+            }
+
         default:
             break
         }
@@ -14462,6 +14487,127 @@ class EditorView: NSView {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(lineText, forType: .string)
         tv.insertText("", replacementRange: lineRange)
+    }
+
+    // dd / yy require two keypresses — track pending state
+    private var vimPendingD = false
+    private var vimPendingY = false
+
+    /// Returns true if the key was consumed.
+    func handleVimKey(_ event: NSEvent) -> Bool {
+        guard vimMode == .normal else {
+            // Insert mode: only handle Esc
+            if event.keyCode == 53 { setVimMode(.normal); return true }
+            return false
+        }
+
+        let ch = event.charactersIgnoringModifiers ?? ""
+        let tv = textView!
+        let text = tv.string as NSString
+        let sel = tv.selectedRange()
+        let lineRange = text.lineRange(for: NSRange(location: sel.location, length: 0))
+
+        switch ch {
+        // ── Mode transitions ─────────────────────────────────────────
+        case "i":
+            setVimMode(.insert); return true
+        case "a":
+            let newLoc = min(sel.location + 1, text.length)
+            tv.setSelectedRange(NSRange(location: newLoc, length: 0))
+            setVimMode(.insert); return true
+        case "o":
+            let insertPos = lineRange.location + lineRange.length
+            tv.setSelectedRange(NSRange(location: insertPos, length: 0))
+            tv.insertText("\n", replacementRange: tv.selectedRange())
+            setVimMode(.insert); return true
+
+        // ── Navigation ───────────────────────────────────────────────
+        case "h":
+            let newLoc = max(0, sel.location - 1)
+            tv.setSelectedRange(NSRange(location: newLoc, length: 0)); return true
+        case "l":
+            let newLoc = min(text.length, sel.location + 1)
+            tv.setSelectedRange(NSRange(location: newLoc, length: 0)); return true
+        case "j":
+            tv.moveDown(nil); return true
+        case "k":
+            tv.moveUp(nil); return true
+        case "0":
+            tv.setSelectedRange(NSRange(location: lineRange.location, length: 0)); return true
+        case "$":
+            let endPos = lineRange.location + lineRange.length
+            let nlAdjust: Int = lineRange.length > 0 &&
+                text.character(at: endPos - 1) == UInt16(("\n" as UnicodeScalar).value) ? 1 : 0
+            tv.setSelectedRange(NSRange(location: max(lineRange.location, endPos - nlAdjust), length: 0))
+            return true
+
+        // ── Line operations ──────────────────────────────────────────
+        case "p":
+            if !vimYankBuffer.isEmpty {
+                let insertPos = lineRange.location + lineRange.length
+                tv.setSelectedRange(NSRange(location: insertPos, length: 0))
+                let pasteStr = vimYankBuffer.hasSuffix("\n") ? vimYankBuffer : vimYankBuffer + "\n"
+                tv.insertText(pasteStr, replacementRange: tv.selectedRange())
+                tv.setSelectedRange(NSRange(location: insertPos, length: 0))
+            }
+            return true
+
+        // ── Colon command ─────────────────────────────────────────────
+        case ":":
+            vimPendingColon = true; return true
+
+        default: break
+        }
+        return false
+    }
+
+    func handleVimTwoKeyOp(_ event: NSEvent) -> Bool {
+        guard vimMode == .normal else { return false }
+        let ch = event.charactersIgnoringModifiers ?? ""
+        let tv = textView!
+        let text = tv.string as NSString
+        let sel = tv.selectedRange()
+        let lineRange = text.lineRange(for: NSRange(location: sel.location, length: 0))
+
+        if ch == "d" {
+            if vimPendingD {
+                vimPendingD = false
+                tv.insertText("", replacementRange: lineRange)
+                return true
+            } else {
+                vimPendingD = true
+                vimPendingY = false
+                return true
+            }
+        }
+        if ch == "y" {
+            if vimPendingY {
+                vimPendingY = false
+                vimYankBuffer = text.substring(with: lineRange)
+                return true
+            } else {
+                vimPendingY = true
+                vimPendingD = false
+                return true
+            }
+        }
+        vimPendingD = false
+        vimPendingY = false
+        return false
+    }
+
+    func handleVimColonCommand(_ nextCh: String) -> Bool {
+        vimPendingColon = false
+        guard let d = NSApp.delegate as? AppDelegate else { return false }
+        switch nextCh {
+        case "w":
+            d.saveCurrentEditor(); return true
+        case "q":
+            d.closeCurrentTab(); return true
+        case "x":
+            d.saveCurrentEditor(); d.closeCurrentTab(); return true
+        default: return false
+        }
     }
 
     override func layout() {
