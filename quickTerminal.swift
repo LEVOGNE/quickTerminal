@@ -6535,15 +6535,15 @@ class FooterBarView: NSView {
         linksContent.addSubview(usageBadge)
 
         // Editor mode buttons (hidden until editor tab is active)
-        let modeItems: [(String, NSColor)] = [
-            ("NORMAL", NSColor(calibratedWhite: 0.55, alpha: 1.0)),
-            ("NANO",   NSColor(calibratedRed: 0.5, green: 0.85, blue: 0.5, alpha: 1.0)),
-            ("VIM",    NSColor(calibratedRed: 0.4, green: 0.7, blue: 1.0, alpha: 1.0)),
+        let modeItems: [(String, NSColor, EditorInputMode)] = [
+            ("NORMAL", NSColor(calibratedWhite: 0.55, alpha: 1.0), .normal),
+            ("NANO",   NSColor(calibratedRed: 0.5, green: 0.85, blue: 0.5, alpha: 1.0), .nano),
+            ("VIM",    NSColor(calibratedRed: 0.4, green: 0.7, blue: 1.0, alpha: 1.0), .vim),
         ]
-        for (i, item) in modeItems.enumerated() {
+        for item in modeItems {
             let btn = ShellButton(title: item.0, accent: item.1)
             btn.isHidden = true
-            let mode: EditorInputMode = [EditorInputMode.normal, .nano, .vim][i]
+            let mode = item.2
             btn.onClick = { [weak self] in
                 self?.onEditorModeChange?(mode)
                 self?.setActiveEditorMode(mode)
@@ -14724,7 +14724,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             if self.activeTab < self.tabEditorModes.count {
                 self.tabEditorModes[self.activeTab] = mode
             }
-            if let ev = self.activeTab < self.tabEditorViews.count ? self.tabEditorViews[self.activeTab] : nil {
+            if self.activeTab < self.tabEditorViews.count,
+               let ev = self.tabEditorViews[self.activeTab] {
                 ev.setInputMode(mode)
             }
         }
