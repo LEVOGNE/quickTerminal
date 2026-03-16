@@ -4811,6 +4811,33 @@ class BorderlessWindow: NSWindow {
                     d.openEditorFile(); return
                 }
             }
+            // Nano mode key intercepts (Ctrl+S/X/K/U)
+            if let d = NSApp.delegate as? AppDelegate,
+               d.activeTab < d.tabTypes.count, d.tabTypes[d.activeTab] == .editor,
+               d.activeTab < d.tabEditorModes.count, d.tabEditorModes[d.activeTab] == .nano {
+                let nFlags = event.modifierFlags.intersection([.command, .control, .option, .shift])
+                if nFlags == .control {
+                    switch event.keyCode {
+                    case 1:  // Ctrl+S — save
+                        d.saveCurrentEditor(); return
+                    case 7:  // Ctrl+X — close tab
+                        d.closeCurrentTab(); return
+                    case 40: // Ctrl+K — cut current line
+                        if d.activeTab < d.tabEditorViews.count,
+                           let ev = d.tabEditorViews[d.activeTab] {
+                            ev.cutCurrentLine()
+                        }
+                        return
+                    case 32: // Ctrl+U — paste
+                        if d.activeTab < d.tabEditorViews.count,
+                           let ev = d.tabEditorViews[d.activeTab] {
+                            ev.textView.paste(nil)
+                        }
+                        return
+                    default: break
+                    }
+                }
+            }
 
         default:
             break
@@ -14424,6 +14451,17 @@ class EditorView: NSView {
             modeBarLabel.stringValue = "── INSERT ──"
             modeBarLabel.textColor = NSColor(calibratedRed: 0.4, green: 0.9, blue: 0.5, alpha: 1.0)
         }
+    }
+
+    func cutCurrentLine() {
+        guard let tv = textView else { return }
+        let text = tv.string as NSString
+        let sel = tv.selectedRange()
+        let lineRange = text.lineRange(for: NSRange(location: sel.location, length: 0))
+        let lineText = text.substring(with: lineRange)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(lineText, forType: .string)
+        tv.replaceCharacters(in: lineRange, with: "")
     }
 
     override func layout() {
