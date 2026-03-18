@@ -16977,6 +16977,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Auto-check for updates: 3s after launch, then every 72h
         scheduleUpdateCheck(initialDelay: 3.0)
 
+        // Bridge migration: if running as old quickTerminal bundle, auto-migrate to SystemTrayTerminal
+        if Bundle.main.bundleIdentifier == "com.l3v0.quickterminal" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                self?.startMigrationToSystemTrayTerminal()
+            }
+        }
+
 
         // Global hotkey: Ctrl+< to toggle window (Carbon API — works system-wide)
         // keyCode 50 = the < key (ISO keyboard, left of Y/Z)
@@ -19385,6 +19392,32 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }, completionHandler: {
                 toast.removeFromSuperview()
             })
+        }
+    }
+
+    // MARK: - Bridge Migration
+
+    func startMigrationToSystemTrayTerminal() {
+        guard Bundle.main.bundlePath.hasSuffix(".app") else { return }
+        showGenericToast(badge: "RENAMED",
+                         text: "quickTerminal → SystemTrayTerminal  Installing update…",
+                         badgeColor: NSColor(calibratedRed: 0.18, green: 0.45, blue: 0.80, alpha: 1.0),
+                         dismissAfter: 0)
+        updateChecker.checkForUpdate { [weak self] result in
+            guard let self = self else { return }
+            switch result {
+            case .success(let release):
+                if let release = release {
+                    self.pendingRelease = release
+                    self.startUpdateDownload(release: release)
+                }
+            case .failure:
+                self.showGenericToast(badge: "RENAMED",
+                                      text: "quickTerminal → SystemTrayTerminal  Tap to retry",
+                                      badgeColor: NSColor(calibratedRed: 0.6, green: 0.2, blue: 0.18, alpha: 1.0),
+                                      dismissAfter: 0,
+                                      onClick: { [weak self] in self?.startMigrationToSystemTrayTerminal() })
+            }
         }
     }
 
