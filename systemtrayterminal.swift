@@ -1234,6 +1234,7 @@ class Terminal {
     var currentTitle: String = ""
     var onTitleChange: ((String) -> Void)?
     var onResponse: ((String) -> Void)?
+    var onBell: (() -> Void)?            // BEL (ASCII 7) — play sound + flash tray icon
     var onColorChange: (() -> Void)?     // notify view when dynamic colors change
     var onResize: ((Int, Int) -> Void)?  // (rows, cols) — request window resize
     var cellPixelWidth: Int = 8           // actual cell pixel dimensions (set by view)
@@ -1375,7 +1376,7 @@ class Terminal {
             case 0x1B:
                 // ESC always starts a new escape sequence, aborting current
                 pstate = .esc; return
-            case 0x07: return // BEL — ignore in non-OSC states
+            case 0x07: onBell?(); return // BEL — notify view (sound + tray flash)
             case 0x08: cursorX = max(0, cursorX - 1); pendingWrap = false; return
             case 0x09: advanceToNextTab(); return
             case 0x0A, 0x0B, 0x0C: lf(); return
@@ -3078,6 +3079,13 @@ class TerminalView: NSView {
         if let id = historyId { tabId = id }
         terminal.onSixelImage = { [weak self] in self?.dirty = true }
         terminal.onResponse = { [weak self] response in self?.writePTY(response) }
+        terminal.onBell = { [weak self] in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                NSSound(named: "Purr")?.play()
+                (NSApp.delegate as? AppDelegate)?.flashTrayIconIfNeeded()
+            }
+        }
         terminal.onResize = { [weak self] rows, cols in
             guard let self = self, let win = self.window else { return }
             let newW = CGFloat(cols) * self.cellW + self.paddingX * 2
@@ -16535,6 +16543,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var statusItem: NSStatusItem!
     var globalClickMonitor: Any?
     var hotKeyRef: EventHotKeyRef?
+    private var bellFlashTimer: Timer?  // tray icon flash animation for BEL
     var visualEffect: NSVisualEffectView!
     var isAnimating = false
     var pendingToggle = false           // queued toggle: execute one toggleWindow() after current animation
@@ -18924,6 +18933,29 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let screen = NSScreen.main ?? NSScreen.screens.first
         let finalFrame = clampFrameToScreen(NSRect(origin: NSPoint(x: x, y: y), size: window.frame.size), screen: screen)
         window.setFrameOrigin(finalFrame.origin)
+    }
+
+    /// Called on BEL (ASCII 7). Flashes tray icon 3× when the window is not in front.
+    func flashTrayIconIfNeeded() {
+        let windowVisible = window?.isVisible == true && window?.alphaValue ?? 0 > 0.5
+        let isKeyWindow  = window?.isKeyWindow == true
+        guard !windowVisible || !isKeyWindow else { return }   // window is front — no flash needed
+
+        bellFlashTimer?.invalidate()
+        guard let button = statusItem.button else { return }
+
+        var flashCount = 0
+        let totalFlashes = 6   // 3 on + 3 off = 3 blinks
+        bellFlashTimer = Timer.scheduledTimer(withTimeInterval: 0.18, repeats: true) { [weak self, weak button] t in
+            guard let self = self, let button = button else { t.invalidate(); return }
+            flashCount += 1
+            button.appearsDisabled = (flashCount % 2 == 0)   // alternate dim/bright
+            if flashCount >= totalFlashes {
+                t.invalidate()
+                self.bellFlashTimer = nil
+                button.appearsDisabled = false
+            }
+        }
     }
 
     @objc func toggleWindow() {
