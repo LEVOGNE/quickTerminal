@@ -1,4 +1,4 @@
-// quickTerminal.swift — A simple native terminal emulator for macOS
+// systemtrayterminal.swift — SystemTrayTerminal — A native macOS menu bar terminal
 // Build: swiftc -O quickTerminal.swift -o quickTerminal -framework Cocoa
 
 import Cocoa
@@ -286,11 +286,11 @@ enum Loc {
             "checkFailed": "Check failed — try again later",
             "updateInstalled": "Update installed — restarting…",
             "fullDiskAccess": "Full Disk Access",
-            "fullDiskAccessMsg": "quickTERMINAL works best with Full Disk Access so your shell can navigate the entire filesystem.\n\nGrant access in:\nSystem Settings → Privacy & Security → Full Disk Access",
+            "fullDiskAccessMsg": "SystemTrayTerminal works best with Full Disk Access so your shell can navigate the entire filesystem.\n\nGrant access in:\nSystem Settings → Privacy & Security → Full Disk Access",
             "openSettings": "Open Settings", "later": "Later",
             "copy": "Copy", "paste": "Paste", "selectAll": "Select All", "clear": "Clear",
             "newTab": "New Tab", "splitVertical": "Split Vertical", "splitHorizontal": "Split Horizontal", "panels": "Panels",
-            "showHide": "Show / Hide", "detachWindow": "Detach Window", "reattachWindow": "Reattach Window", "quitApp": "Quit quickTerminal",
+            "showHide": "Show / Hide", "detachWindow": "Detach Window", "reattachWindow": "Reattach Window", "quitApp": "Quit SystemTrayTerminal",
             "sshNewConn": "NEW CONNECTION", "sshNoSaved": "No saved connections",
             "sshNamePh": "Name  (optional, e.g. Production)",
             "sshConnPh": "user@host  or  user@host:port  *",
@@ -355,11 +355,11 @@ enum Loc {
             "checkFailed": "Prüfung fehlgeschlagen — später erneut versuchen",
             "updateInstalled": "Update installiert — startet neu…",
             "fullDiskAccess": "Vollständiger Festplattenzugriff",
-            "fullDiskAccessMsg": "quickTERMINAL funktioniert am besten mit vollständigem Festplattenzugriff.\n\nZugriff gewähren unter:\nSystemeinstellungen → Datenschutz & Sicherheit → Voller Festplattenzugriff",
+            "fullDiskAccessMsg": "SystemTrayTerminal funktioniert am besten mit vollständigem Festplattenzugriff.\n\nZugriff gewähren unter:\nSystemeinstellungen → Datenschutz & Sicherheit → Voller Festplattenzugriff",
             "openSettings": "Einstellungen öffnen", "later": "Später",
             "copy": "Kopieren", "paste": "Einfügen", "selectAll": "Alles auswählen", "clear": "Leeren",
             "newTab": "Neuer Tab", "splitVertical": "Vertikal teilen", "splitHorizontal": "Horizontal teilen", "panels": "Panels",
-            "showHide": "Einblenden / Ausblenden", "detachWindow": "Fenster lösen", "reattachWindow": "Fenster andocken", "quitApp": "quickTerminal beenden",
+            "showHide": "Einblenden / Ausblenden", "detachWindow": "Fenster lösen", "reattachWindow": "Fenster andocken", "quitApp": "SystemTrayTerminal beenden",
             "sshNewConn": "NEUE VERBINDUNG", "sshNoSaved": "Keine gespeicherten Verbindungen",
             "sshNamePh": "Name  (optional, z.B. Produktion)",
             "sshConnPh": "user@host  oder  user@host:port  *",
@@ -424,11 +424,11 @@ enum Loc {
             "checkFailed": "Kontrol başarısız — daha sonra tekrar dene",
             "updateInstalled": "Güncelleme yüklendi — yeniden başlatılıyor…",
             "fullDiskAccess": "Tam Disk Erişimi",
-            "fullDiskAccessMsg": "quickTERMINAL, tam disk erişimiyle en iyi şekilde çalışır.\n\nErişim ver:\nSistem Ayarları → Gizlilik ve Güvenlik → Tam Disk Erişimi",
+            "fullDiskAccessMsg": "SystemTrayTerminal, tam disk erişimiyle en iyi şekilde çalışır.\n\nErişim ver:\nSistem Ayarları → Gizlilik ve Güvenlik → Tam Disk Erişimi",
             "openSettings": "Ayarları Aç", "later": "Sonra",
             "copy": "Kopyala", "paste": "Yapıştır", "selectAll": "Tümünü Seç", "clear": "Temizle",
             "newTab": "Yeni Sekme", "splitVertical": "Dikey Böl", "splitHorizontal": "Yatay Böl", "panels": "Paneller",
-            "showHide": "Göster / Gizle", "detachWindow": "Pencereyi Ayır", "reattachWindow": "Pencereyi Yerleştir", "quitApp": "quickTerminal'i Kapat",
+            "showHide": "Göster / Gizle", "detachWindow": "Pencereyi Ayır", "reattachWindow": "Pencereyi Yerleştir", "quitApp": "SystemTrayTerminal'i Kapat",
             "sshNewConn": "YENİ BAĞLANTI", "sshNoSaved": "Kayıtlı bağlantı yok",
             "sshNamePh": "Ad  (isteğe bağlı, örn. Üretim)",
             "sshConnPh": "kullanıcı@host  veya  kullanıcı@host:port  *",
@@ -493,11 +493,11 @@ enum Loc {
             "checkFailed": "Verificación fallida — intenta más tarde",
             "updateInstalled": "Actualización instalada — reiniciando…",
             "fullDiskAccess": "Acceso Completo al Disco",
-            "fullDiskAccessMsg": "quickTERMINAL funciona mejor con Acceso Completo al Disco.\n\nOtorgar acceso en:\nAjustes del Sistema → Privacidad y Seguridad → Acceso Completo al Disco",
+            "fullDiskAccessMsg": "SystemTrayTerminal funciona mejor con Acceso Completo al Disco.\n\nOtorgar acceso en:\nAjustes del Sistema → Privacidad y Seguridad → Acceso Completo al Disco",
             "openSettings": "Abrir Ajustes", "later": "Después",
             "copy": "Copiar", "paste": "Pegar", "selectAll": "Seleccionar Todo", "clear": "Limpiar",
             "newTab": "Nueva Pestaña", "splitVertical": "División Vertical", "splitHorizontal": "División Horizontal", "panels": "Paneles",
-            "showHide": "Mostrar / Ocultar", "detachWindow": "Desacoplar Ventana", "reattachWindow": "Acoplar Ventana", "quitApp": "Salir de quickTerminal",
+            "showHide": "Mostrar / Ocultar", "detachWindow": "Desacoplar Ventana", "reattachWindow": "Acoplar Ventana", "quitApp": "Salir de SystemTrayTerminal",
             "sshNewConn": "NUEVA CONEXIÓN", "sshNoSaved": "No hay conexiones guardadas",
             "sshNamePh": "Nombre  (opcional, p.ej. Producción)",
             "sshConnPh": "usuario@host  o  usuario@host:puerto  *",
@@ -562,11 +562,11 @@ enum Loc {
             "checkFailed": "Vérification échouée — réessayez plus tard",
             "updateInstalled": "Mise à jour installée — redémarrage…",
             "fullDiskAccess": "Accès Complet au Disque",
-            "fullDiskAccessMsg": "quickTERMINAL fonctionne mieux avec l'Accès Complet au Disque.\n\nAccorder l'accès dans :\nRéglages Système → Confidentialité et Sécurité → Accès Complet au Disque",
+            "fullDiskAccessMsg": "SystemTrayTerminal fonctionne mieux avec l'Accès Complet au Disque.\n\nAccorder l'accès dans :\nRéglages Système → Confidentialité et Sécurité → Accès Complet au Disque",
             "openSettings": "Ouvrir les Réglages", "later": "Plus tard",
             "copy": "Copier", "paste": "Coller", "selectAll": "Tout Sélectionner", "clear": "Effacer",
             "newTab": "Nouvel Onglet", "splitVertical": "Division Verticale", "splitHorizontal": "Division Horizontale", "panels": "Panneaux",
-            "showHide": "Afficher / Masquer", "detachWindow": "Détacher Fenêtre", "reattachWindow": "Réattacher Fenêtre", "quitApp": "Quitter quickTerminal",
+            "showHide": "Afficher / Masquer", "detachWindow": "Détacher Fenêtre", "reattachWindow": "Réattacher Fenêtre", "quitApp": "Quitter SystemTrayTerminal",
             "sshNewConn": "NOUVELLE CONNEXION", "sshNoSaved": "Aucune connexion enregistrée",
             "sshNamePh": "Nom  (optionnel, ex. Production)",
             "sshConnPh": "utilisateur@hôte  ou  utilisateur@hôte:port  *",
@@ -631,11 +631,11 @@ enum Loc {
             "checkFailed": "Verifica fallita — riprova più tardi",
             "updateInstalled": "Aggiornamento installato — riavvio…",
             "fullDiskAccess": "Accesso Completo al Disco",
-            "fullDiskAccessMsg": "quickTERMINAL funziona meglio con Accesso Completo al Disco.\n\nConcedi accesso in:\nImpostazioni di Sistema → Privacy e Sicurezza → Accesso Completo al Disco",
+            "fullDiskAccessMsg": "SystemTrayTerminal funziona meglio con Accesso Completo al Disco.\n\nConcedi accesso in:\nImpostazioni di Sistema → Privacy e Sicurezza → Accesso Completo al Disco",
             "openSettings": "Apri Impostazioni", "later": "Dopo",
             "copy": "Copia", "paste": "Incolla", "selectAll": "Seleziona Tutto", "clear": "Pulisci",
             "newTab": "Nuova Scheda", "splitVertical": "Divisione Verticale", "splitHorizontal": "Divisione Orizzontale", "panels": "Pannelli",
-            "showHide": "Mostra / Nascondi", "detachWindow": "Sgancia Finestra", "reattachWindow": "Aggancia Finestra", "quitApp": "Esci da quickTerminal",
+            "showHide": "Mostra / Nascondi", "detachWindow": "Sgancia Finestra", "reattachWindow": "Aggancia Finestra", "quitApp": "Esci da SystemTrayTerminal",
             "sshNewConn": "NUOVA CONNESSIONE", "sshNoSaved": "Nessuna connessione salvata",
             "sshNamePh": "Nome  (opzionale, es. Produzione)",
             "sshConnPh": "utente@host  o  utente@host:porta  *",
@@ -700,11 +700,11 @@ enum Loc {
             "checkFailed": "فشل الفحص — حاول لاحقاً",
             "updateInstalled": "تم تثبيت التحديث — إعادة التشغيل…",
             "fullDiskAccess": "الوصول الكامل للقرص",
-            "fullDiskAccessMsg": "quickTERMINAL يعمل بشكل أفضل مع الوصول الكامل للقرص.\n\nامنح الوصول في:\nإعدادات النظام → الخصوصية والأمان → الوصول الكامل للقرص",
+            "fullDiskAccessMsg": "SystemTrayTerminal يعمل بشكل أفضل مع الوصول الكامل للقرص.\n\nامنح الوصول في:\nإعدادات النظام → الخصوصية والأمان → الوصول الكامل للقرص",
             "openSettings": "فتح الإعدادات", "later": "لاحقاً",
             "copy": "نسخ", "paste": "لصق", "selectAll": "تحديد الكل", "clear": "مسح",
             "newTab": "تبويب جديد", "splitVertical": "تقسيم عمودي", "splitHorizontal": "تقسيم أفقي", "panels": "الألواح",
-            "showHide": "إظهار / إخفاء", "detachWindow": "فصل النافذة", "reattachWindow": "إرساء النافذة", "quitApp": "إنهاء quickTerminal",
+            "showHide": "إظهار / إخفاء", "detachWindow": "فصل النافذة", "reattachWindow": "إرساء النافذة", "quitApp": "إنهاء SystemTrayTerminal",
             "sshNewConn": "اتصال جديد", "sshNoSaved": "لا توجد اتصالات محفوظة",
             "sshNamePh": "الاسم  (اختياري، مثل: الإنتاج)",
             "sshConnPh": "مستخدم@مضيف  أو  مستخدم@مضيف:منفذ  *",
@@ -769,11 +769,11 @@ enum Loc {
             "checkFailed": "確認に失敗 — 後でもう一度試してください",
             "updateInstalled": "更新がインストールされました — 再起動中…",
             "fullDiskAccess": "フルディスクアクセス",
-            "fullDiskAccessMsg": "quickTERMINALはフルディスクアクセスで最もよく動作します。\n\nアクセスを許可:\nシステム設定 → プライバシーとセキュリティ → フルディスクアクセス",
+            "fullDiskAccessMsg": "SystemTrayTerminalはフルディスクアクセスで最もよく動作します。\n\nアクセスを許可:\nシステム設定 → プライバシーとセキュリティ → フルディスクアクセス",
             "openSettings": "設定を開く", "later": "後で",
             "copy": "コピー", "paste": "ペースト", "selectAll": "すべて選択", "clear": "クリア",
             "newTab": "新しいタブ", "splitVertical": "縦分割", "splitHorizontal": "横分割", "panels": "パネル",
-            "showHide": "表示 / 非表示", "detachWindow": "ウィンドウを分離", "reattachWindow": "ウィンドウを固定", "quitApp": "quickTerminal を終了",
+            "showHide": "表示 / 非表示", "detachWindow": "ウィンドウを分離", "reattachWindow": "ウィンドウを固定", "quitApp": "SystemTrayTerminal を終了",
             "sshNewConn": "新規接続", "sshNoSaved": "保存された接続がありません",
             "sshNamePh": "名前  (任意、例: 本番)",
             "sshConnPh": "ユーザー@ホスト  または  ユーザー@ホスト:ポート  *",
@@ -838,11 +838,11 @@ enum Loc {
             "checkFailed": "检查失败 — 请稍后重试",
             "updateInstalled": "更新已安装 — 正在重启…",
             "fullDiskAccess": "完全磁盘访问",
-            "fullDiskAccessMsg": "quickTERMINAL 在完全磁盘访问下运行最佳。\n\n在以下位置授予访问权限：\n系统设置 → 隐私与安全性 → 完全磁盘访问",
+            "fullDiskAccessMsg": "SystemTrayTerminal 在完全磁盘访问下运行最佳。\n\n在以下位置授予访问权限：\n系统设置 → 隐私与安全性 → 完全磁盘访问",
             "openSettings": "打开设置", "later": "稍后",
             "copy": "复制", "paste": "粘贴", "selectAll": "全选", "clear": "清除",
             "newTab": "新标签页", "splitVertical": "垂直分割", "splitHorizontal": "水平分割", "panels": "面板",
-            "showHide": "显示 / 隐藏", "detachWindow": "分离窗口", "reattachWindow": "重新固定窗口", "quitApp": "退出 quickTerminal",
+            "showHide": "显示 / 隐藏", "detachWindow": "分离窗口", "reattachWindow": "重新固定窗口", "quitApp": "退出 SystemTrayTerminal",
             "sshNewConn": "新建连接", "sshNoSaved": "没有保存的连接",
             "sshNamePh": "名称  (可选，例如 生产)",
             "sshConnPh": "用户@主机  或  用户@主机:端口  *",
@@ -907,11 +907,11 @@ enum Loc {
             "checkFailed": "Проверка не удалась — попробуйте позже",
             "updateInstalled": "Обновление установлено — перезапуск…",
             "fullDiskAccess": "Полный доступ к диску",
-            "fullDiskAccessMsg": "quickTERMINAL работает лучше с полным доступом к диску.\n\nРазрешить в:\nНастройки системы → Конфиденциальность и безопасность → Полный доступ к диску",
+            "fullDiskAccessMsg": "SystemTrayTerminal работает лучше с полным доступом к диску.\n\nРазрешить в:\nНастройки системы → Конфиденциальность и безопасность → Полный доступ к диску",
             "openSettings": "Открыть настройки", "later": "Позже",
             "copy": "Копировать", "paste": "Вставить", "selectAll": "Выбрать всё", "clear": "Очистить",
             "newTab": "Новая вкладка", "splitVertical": "Разделить вертикально", "splitHorizontal": "Разделить горизонтально", "panels": "Панели",
-            "showHide": "Показать / Скрыть", "detachWindow": "Открепить окно", "reattachWindow": "Прикрепить окно", "quitApp": "Выйти из quickTerminal",
+            "showHide": "Показать / Скрыть", "detachWindow": "Открепить окно", "reattachWindow": "Прикрепить окно", "quitApp": "Выйти из SystemTrayTerminal",
             "sshNewConn": "НОВОЕ ПОДКЛЮЧЕНИЕ", "sshNoSaved": "Нет сохранённых подключений",
             "sshNamePh": "Имя  (необязательно, напр. Продакшн)",
             "sshConnPh": "пользователь@хост  или  пользователь@хост:порт  *",
@@ -2245,7 +2245,7 @@ class Terminal {
         case 0x63: onResponse?("\u{1B}[>1;0;0c")    // Secondary DA
         case 0x6D, 0x6E: break                       // XTMODKEYS — ignore
         case 0x71: // XTVERSION
-            if p.first ?? 0 == 0 { onResponse?("\u{1B}P>|quickTerminal(1.0)\u{1B}\\") }
+            if p.first ?? 0 == 0 { onResponse?("\u{1B}P>|SystemTrayTerminal(1.0)\u{1B}\\") }
         case 0x75: // CSI > Ps u — push kitty keyboard mode
             let flags = p.first ?? 0
             kittyKbdStack.append(flags)
@@ -4312,7 +4312,7 @@ class TerminalView: NSView {
             .foregroundColor: NSColor.gray
         ]
         footerItem.attributedTitle = NSAttributedString(
-            string: "quickTERMINAL v\(kAppVersion) — LEVOGNE © 2026", attributes: footerAttrs)
+            string: "STT v\(kAppVersion) — LEVOGNE © 2026", attributes: footerAttrs)
         footerItem.isEnabled = false
         menu.addItem(footerItem)
 
@@ -7999,9 +7999,9 @@ class SettingsOverlay: NSView {
             guard !msg.isEmpty else { return }
             // Send directly via /usr/sbin/sendmail (built into macOS)
             let to = "l.ersen@icloud.com"
-            let subject = "quickTERMINAL Feedback"
-            let hostname = Host.current().localizedName ?? "quickTerminal-user"
-            let email = "From: quickTerminal@\(hostname)\r\nTo: \(to)\r\nSubject: \(subject)\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n\(msg)"
+            let subject = "SystemTrayTerminal Feedback"
+            let hostname = Host.current().localizedName ?? "SystemTrayTerminal-user"
+            let email = "From: SystemTrayTerminal@\(hostname)\r\nTo: \(to)\r\nSubject: \(subject)\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n\(msg)"
             let proc = Process()
             proc.executableURL = URL(fileURLWithPath: "/usr/sbin/sendmail")
             proc.arguments = ["-t"]
@@ -8050,7 +8050,7 @@ class SettingsOverlay: NSView {
     }
 
     private static func openMailto(_ msg: String) {
-        let subject = "quickTERMINAL Feedback"
+        let subject = "SystemTrayTerminal Feedback"
         let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? subject
         let encodedBody = msg.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? msg
         if let url = URL(string: "mailto:l.ersen@icloud.com?subject=\(encodedSubject)&body=\(encodedBody)") {
@@ -10831,7 +10831,7 @@ class GitPanelView: NSView {
     }
 
     @objc private func openTokenPage() {
-        NSWorkspace.shared.open(URL(string: "https://github.com/settings/tokens/new?scopes=repo&description=quickTerminal")!)
+        NSWorkspace.shared.open(URL(string: "https://github.com/settings/tokens/new?scopes=repo&description=SystemTrayTerminal")!)
     }
 
     @objc private func disconnectClicked() {
@@ -13234,7 +13234,7 @@ class HelpViewer {
         // Fallback wenn keine Datei gefunden
         var l: [StyledLine] = []
 
-        l.append(StyledLine(text: "quickTERMINAL", style: .title))
+        l.append(StyledLine(text: "SystemTrayTerminal", style: .title))
         l.append(StyledLine(text: "v\(kAppVersion)", style: .badge))
         l.append(StyledLine(text: "", style: .normal))
         l.append(StyledLine(text: "─────────────────────────────────────────────", style: .separator))
@@ -16633,7 +16633,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
             let icon = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { rect in
-                // Exact reproduction of quickTERMINAL.svg
+                // Exact reproduction of SystemTrayTerminal.svg
                 // Content spans x:[2,22] y:[4,25.25] in design coords
                 let sc: CGFloat = 18.0 / 21.25
                 let ox: CGFloat = (18.0 - 20.0 * sc) / 2.0
@@ -20400,7 +20400,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 // MARK: - Main
 
 // Single instance guard — use file lock to prevent multiple instances
-let lockPath = NSTemporaryDirectory() + "quickTerminal.lock"
+let lockPath = NSTemporaryDirectory() + "SystemTrayTerminal.lock"
 let lockFD = open(lockPath, O_CREAT | O_WRONLY, 0o600)
 if lockFD < 0 || flock(lockFD, LOCK_EX | LOCK_NB) != 0 {
     // Another instance holds the lock — exit immediately
@@ -20412,12 +20412,12 @@ if lockFD < 0 || flock(lockFD, LOCK_EX | LOCK_NB) != 0 {
 // MARK: - Crash Reporting
 
 private func setupCrashReporting() {
-    let logDir = NSHomeDirectory() + "/.quickterminal"
+    let logDir = NSHomeDirectory() + "/.systemtrayterminal"
     mkdir(logDir, 0o755)
 
     NSSetUncaughtExceptionHandler { exception in
         let info = """
-        === quickTerminal Crash Report ===
+        === SystemTrayTerminal Crash Report ===
         Date: \(Date())
         Exception: \(exception.name.rawValue)
         Reason: \(exception.reason ?? "unknown")
@@ -20425,7 +20425,7 @@ private func setupCrashReporting() {
         \(exception.callStackSymbols.joined(separator: "\n"))
         ===================================
         """
-        let logDir = NSHomeDirectory() + "/.quickterminal"
+        let logDir = NSHomeDirectory() + "/.systemtrayterminal"
         let logPath = logDir + "/crash.log"
         try? info.write(toFile: logPath, atomically: true, encoding: .utf8)
     }
@@ -20434,11 +20434,11 @@ private func setupCrashReporting() {
     for sig: Int32 in [SIGABRT, SIGSEGV, SIGBUS, SIGFPE, SIGILL, SIGTRAP] {
         signal(sig) { sigNum in
             // Only use async-signal-safe functions: open, write, close, signal, raise
-            let dir = NSHomeDirectory() + "/.quickterminal"
+            let dir = NSHomeDirectory() + "/.systemtrayterminal"
             let path = dir + "/crash.log"
             let fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0o644)
             if fd >= 0 {
-                var msg = "quickTerminal crashed with signal \(sigNum)\n"
+                var msg = "SystemTrayTerminal crashed with signal \(sigNum)\n"
                 msg.withUTF8 { buf in _ = Darwin.write(fd, buf.baseAddress, buf.count) }
                 close(fd)
             }
@@ -20463,9 +20463,9 @@ let mainMenu = NSMenu()
 let appMenuItem = NSMenuItem()
 mainMenu.addItem(appMenuItem)
 let appMenu = NSMenu()
-appMenu.addItem(NSMenuItem(title: "About quickTerminal", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
+appMenu.addItem(NSMenuItem(title: "About SystemTrayTerminal", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
 appMenu.addItem(NSMenuItem.separator())
-appMenu.addItem(NSMenuItem(title: "Quit quickTerminal", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+appMenu.addItem(NSMenuItem(title: "Quit SystemTrayTerminal", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 appMenuItem.submenu = appMenu
 
 let editMenuItem = NSMenuItem()
