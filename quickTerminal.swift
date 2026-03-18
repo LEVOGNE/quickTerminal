@@ -15753,6 +15753,16 @@ class LineGutterView: NSView {
     var numColor: NSColor = NSColor(calibratedWhite: 0.35, alpha: 1.0)
     var sepColor: NSColor = NSColor(calibratedWhite: 1.0,  alpha: 0.08)
 
+    private var _cachedFont: NSFont = NSFont.monospacedSystemFont(ofSize: 10, weight: .regular)
+    private var _cachedAttrs: [NSAttributedString.Key: Any]? = nil
+
+    private var lineAttrs: [NSAttributedString.Key: Any] {
+        if _cachedAttrs == nil {
+            _cachedAttrs = [.font: _cachedFont, .foregroundColor: numColor]
+        }
+        return _cachedAttrs!
+    }
+
     weak var textView:  NSTextView?
     weak var scrollView: NSScrollView?
 
@@ -15766,6 +15776,7 @@ class LineGutterView: NSView {
             numColor = NSColor(calibratedWhite: 0.45, alpha: 1.0)
             sepColor = NSColor(calibratedWhite: 0.0,  alpha: 0.08)
         }
+        _cachedAttrs = nil
         needsDisplay = true
     }
 
@@ -15786,10 +15797,7 @@ class LineGutterView: NSView {
         NSRect(x: bounds.width - 1, y: dirtyRect.minY, width: 1, height: dirtyRect.height).fill()
 
         let str = tv.string as NSString
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font:            NSFont.monospacedSystemFont(ofSize: 10, weight: .regular),
-            .foregroundColor: numColor,
-        ]
+        let attrs = lineAttrs
 
         if str.length == 0 {
             // Empty doc — always show "1"
@@ -15807,8 +15815,10 @@ class LineGutterView: NSView {
         // Which line number starts at the top of the visible area?
         var lineNum = 1
         if charRange.location > 0 {
-            lineNum = str.substring(to: charRange.location)
-                         .components(separatedBy: "\n").count
+            let end = charRange.location
+            for i in 0..<end {
+                if str.character(at: i) == 10 { lineNum += 1 }
+            }
         }
 
         var glyphIdx = glyphRange.location
